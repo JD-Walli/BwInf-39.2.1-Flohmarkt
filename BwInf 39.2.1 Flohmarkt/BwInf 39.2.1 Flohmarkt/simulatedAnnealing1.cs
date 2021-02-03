@@ -27,24 +27,24 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         public void simulate1() {
             double temp = startTemperature;
-            int currentEnergy = energy1();
+            int currentEnergy = energy1(anfragen);
             int bestEnergy = currentEnergy;
             List<Anfrage> besteVerteilung = new List<Anfrage>();
             List<Anfrage> currentAnfragen = new List<Anfrage>();
             foreach (Anfrage afr in anfragen) { currentAnfragen.Add(afr.clone());}
             List<Anfrage> newAnfragen = new List<Anfrage>();
             foreach (Anfrage afr in anfragen) { newAnfragen.Add(afr.clone()); }
+            Console.WriteLine(newAnfragen.Count);
             besteVerteilung = currentAnfragen;
 
             for (int i = 0; i < 10000; i++) {
                 newAnfragen = makeMove1(newAnfragen, temp);
-                int newEnergy = energy1();
-                if (i % 10 == 0) { Console.WriteLine(currentEnergy); }
+                int newEnergy = energy1(newAnfragen);
+                if (i % 20 == 0) { Console.WriteLine(i + " : " + currentEnergy); }
                 if (newEnergy <= currentEnergy || rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)) {
                     currentEnergy = newEnergy;
                     currentAnfragen.Clear();
                     foreach (Anfrage afr in newAnfragen) { currentAnfragen.Add(afr.clone()); }
-
                     if (newEnergy < bestEnergy) {
                         bestEnergy = newEnergy;
                         Console.WriteLine("  "+bestEnergy);
@@ -53,7 +53,8 @@ namespace BwInf_39._2._1_Flohmarkt {
                     }
                 }
                 else {
-                    newAnfragen = currentAnfragen;
+                    newAnfragen.Clear();
+                    foreach (Anfrage afr in currentAnfragen) { newAnfragen.Add(afr.clone()); }
                 }
                 temp *= 0.9995;
             }
@@ -70,10 +71,10 @@ namespace BwInf_39._2._1_Flohmarkt {
             return anfragen;
         }
 
-        int energy1() {
+        int energy1(List<Anfrage> anfragenLocal) {
             int energy = 0;
-            foreach (Anfrage anfrage1 in anfragen) {
-                foreach (Anfrage anfrage2 in anfragen) {
+            foreach (Anfrage anfrage1 in anfragenLocal) {
+                foreach (Anfrage anfrage2 in anfragenLocal) {
                     energy += anfrage1.überschneidung(anfrage2);
                 }
             }
