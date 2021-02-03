@@ -46,6 +46,7 @@
     <Compile Include="Anfrage.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="simulatedAnnealing1.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
