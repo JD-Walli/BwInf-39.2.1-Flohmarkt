@@ -5,3 +5,5 @@ C:\Users\Jakov\Desktop\git\BWInf 20\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmark
 C:\Users\Jakov\Desktop\git\BWInf 20\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\obj\Debug\BwInf 39.2.1 Flohmarkt.csproj.CoreCompileInputs.cache
 C:\Users\Jakov\Desktop\git\BWInf 20\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\obj\Debug\BwInf 39.2.1 Flohmarkt.exe
 C:\Users\Jakov\Desktop\git\BWInf 20\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\obj\Debug\BwInf 39.2.1 Flohmarkt.pdb
+C:\Users\Jakov\Desktop\git\BWInf 20\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\obj\Debug\BwInf_39._2._1_Flohmarkt.chart.resources
+C:\Users\Jakov\Desktop\git\BWInf 20\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\obj\Debug\BwInf 39.2.1 Flohmarkt.csproj.GenerateResource.cache

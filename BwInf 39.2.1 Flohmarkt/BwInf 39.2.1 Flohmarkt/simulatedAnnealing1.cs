@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Forms;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -19,9 +20,11 @@ namespace BwInf_39._2._1_Flohmarkt {
             this.startTemperature = startTemperature;
         }
 
+        public simulatedAnnealing() { }
+
         public void setRandomPos() {
             foreach (Anfrage a in anfragen) {
-                a.position = rnd.Next(streetLength-a.länge);
+                a.position = rnd.Next(streetLength - a.länge);
             }
         }
 
@@ -31,23 +34,21 @@ namespace BwInf_39._2._1_Flohmarkt {
             int bestEnergy = currentEnergy;
             List<Anfrage> besteVerteilung = new List<Anfrage>();
             List<Anfrage> currentAnfragen = new List<Anfrage>();
-            foreach (Anfrage afr in anfragen) { currentAnfragen.Add(afr.clone());}
+            foreach (Anfrage afr in anfragen) { currentAnfragen.Add(afr.clone()); }
             List<Anfrage> newAnfragen = new List<Anfrage>();
             foreach (Anfrage afr in anfragen) { newAnfragen.Add(afr.clone()); }
-            Console.WriteLine(newAnfragen.Count);
             besteVerteilung = currentAnfragen;
-
-            for (int i = 0; i < 10000; i++) {
+            List<int> posEnergyDiffs = new List<int>();
+            for (int i = 0; i < 70000; i++) {
                 newAnfragen = makeMove1(newAnfragen, temp);
-                int newEnergy = energy1(newAnfragen);
-                if (i % 20 == 0) { Console.WriteLine(i + " : " + currentEnergy); }
-                if (newEnergy <= currentEnergy || rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)) {
+                int newEnergy = energy12(newAnfragen);
+                if (newEnergy <= currentEnergy ) {//|| rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)
                     currentEnergy = newEnergy;
                     currentAnfragen.Clear();
+                    Console.WriteLine(i + " : " + currentEnergy);
                     foreach (Anfrage afr in newAnfragen) { currentAnfragen.Add(afr.clone()); }
                     if (newEnergy < bestEnergy) {
                         bestEnergy = newEnergy;
-                        Console.WriteLine("  "+bestEnergy);
                         besteVerteilung.Clear();
                         foreach (Anfrage afr in newAnfragen) { besteVerteilung.Add(afr.clone()); }
                     }
@@ -56,26 +57,43 @@ namespace BwInf_39._2._1_Flohmarkt {
                     newAnfragen.Clear();
                     foreach (Anfrage afr in currentAnfragen) { newAnfragen.Add(afr.clone()); }
                 }
-                temp *= 0.9995;
+                temp *= 0.99996;//200000, 130, 0.999972 //70000,74,0.99997
             }
             Console.WriteLine("done");
-
+            plotPosEnergyDiffs(posEnergyDiffs);
         }
 
         //move der weiter weg geht wird untewahrscheinlicher je kleiner temp wird (rnd wird als koordinatenursprung angenommen; move=rnd*(temp/startTemp)
         List<Anfrage> makeMove1(List<Anfrage> anfragen, double temp) {
             int afr = rnd.Next(anfragen.Count());
             int x = rnd.Next(streetLength - anfragen[afr].länge) - anfragen[afr].position;
-            int move = (int)(x * (temp / startTemperature));
+            int move = (int)(x * (temp / startTemperature ));
+            move = (move == 0) ? ((x > 0) ? +1 : -1) : move;
+            //Console.WriteLine("                      " + move + "  " + (int)temp);
             anfragen[afr].position += move;
             return anfragen;
         }
 
-        int energy1(List<Anfrage> anfragenLocal) {
+        public int energy1(List<Anfrage> anfragenLocal) {
             int energy = 0;
-            foreach (Anfrage anfrage1 in anfragenLocal) {
-                foreach (Anfrage anfrage2 in anfragenLocal) {
-                    energy += anfrage1.überschneidung(anfrage2);
+            for (int i= 0;i < anfragenLocal.Count;i++) {
+                for (int j = 0; j < anfragenLocal.Count; j++) {
+                    if (i != j) {
+                        energy += anfragenLocal[i].überschneidung(anfragenLocal[j]);
+                        //Console.WriteLine("  " + anfragenLocal[i].id + ", " + anfragenLocal[j].id + " -> " + anfragenLocal[i].überschneidung(anfragenLocal[j]) + "  " + energy);
+                    }
+                }
+            }
+            return energy/2;
+        }
+
+        public int energy12(List<Anfrage> anfragenLocal) {
+            int energy = 0;
+            for (int i = 0; i < anfragenLocal.Count; i++) {
+                for (int j = 0; j < i; j++) {
+                    if (i != j) {
+                        energy += anfragenLocal[i].überschneidung(anfragenLocal[j]);
+                    }
                 }
             }
             return energy;
