@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace BwInf_39._2._1_Flohmarkt {
     class Program {
         static void Main(string[] args) {
-            simulatedAnnealing simAnn = new simulatedAnnealing(readData(1), 1000, 10, 74);
+            simulatedAnnealing simAnn = new simulatedAnnealing(readData(2), 1000, 10, 10);
             simAnn.setRandomPos();
             simAnn.simulate1();
             Console.ReadKey();
