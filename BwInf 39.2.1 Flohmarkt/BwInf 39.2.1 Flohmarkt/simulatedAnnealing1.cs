@@ -107,7 +107,8 @@ namespace BwInf_39._2._1_Flohmarkt {
             besteVerteilung = currentAnfragen;
             List<int> posEnergyDiffs = new List<int>();
             for (int i = 0; i < durchläufe; i++) {
-                newAnfragen = makeMove3(newAnfragen, temp); //variabel
+
+                newAnfragen = makeMove4(newAnfragen, temp); //variabel
                 int newEnergy = energy2(newAnfragen.verwendet, temp);//variabel
                 if (newEnergy > currentEnergy) {
                     posEnergyDiffs.Add(newEnergy - currentEnergy);
@@ -207,6 +208,41 @@ namespace BwInf_39._2._1_Flohmarkt {
                             break;
                         }
                     }
+                }
+            }
+            return (anfragen.verwendet, anfragen.abgelehnt);
+        }
+
+
+        public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) makeMove4((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp) {
+            int rnd1 = rnd.Next(100);
+            if (rnd1 < 60 && anfragen.verwendet.Count>0) { //verschiebe
+                int afr = rnd.Next(anfragen.verwendet.Count());
+                int x = rnd.Next(streetLength - anfragen.verwendet[afr].länge) - anfragen.verwendet[afr].position;
+                //int move = (int)(x * (temp / startTemperature)); 
+                int move = x;
+                move = (move == 0) ? ((x > 0) ? +1 : -1) : move;
+                List<int> freePositions = getFreePositions(anfragen.verwendet[afr], anfragen.verwendet);
+                if (freePositions.Count > 0) {
+                    anfragen.verwendet[afr].position = freePositions[findNearestVal(anfragen.verwendet[afr].position + move, freePositions)];
+                }
+            }
+            else {// swappe
+                int rnd2 = rnd.Next(100);
+                if ((rnd2 < 50 || anfragen.abgelehnt.Count == 0) && anfragen.verwendet.Count > 0) {//reinswap
+                    int rnd3 = rnd.Next(anfragen.verwendet.Count);
+                    anfragen.abgelehnt.Add(anfragen.verwendet[rnd3]);
+                    anfragen.verwendet.RemoveAt(rnd3);
+                }
+                else {//rausswap
+                    int afr = rnd.Next(anfragen.abgelehnt.Count);
+                    List<int> freePositions = getFreePositions(anfragen.abgelehnt[afr], anfragen.verwendet);
+                    if (freePositions.Count > 0) {
+                        anfragen.abgelehnt[afr].position = freePositions[rnd.Next(freePositions.Count)];
+                        anfragen.verwendet.Add(anfragen.abgelehnt[afr]);
+                        anfragen.abgelehnt.RemoveAt(afr);
+                    }
+
                 }
             }
             return (anfragen.verwendet, anfragen.abgelehnt);
@@ -352,22 +388,23 @@ namespace BwInf_39._2._1_Flohmarkt {
                     }
                 }
             }
-            return (anzahl, summe);
+            return (anzahl/2, summe/2);
         }
 
         public List<int> getFreePositions(Anfrage afr, List<Anfrage> verwendet) {
             bool[] spotsVertikal = new bool[streetLength];
+            for(int e=0;e<spotsVertikal.Length;e++) { spotsVertikal[e]=true; }
             for (int i = 0; i < verwendet.Count; i++) {
-                if(verwendet[i].überschneidung(new Anfrage(-1, afr.mietbeginn, afr.mietende, streetLength, 0)) > 0) { //wenn aktuell betrachtete Anfrage sich mit betrachtetem Querstreifen überschneidet
-                    for(int j = verwendet[i].position; j < verwendet[i].position + verwendet[i].länge; i++) { //gehe Bereich ab, in dem sich betrachtete Anfrage befindet und setze alle spotsvertikal Einträge an dieser Stelle auf false
+                if (verwendet[i].überschneidung(new Anfrage(-1, afr.mietbeginn, afr.mietende, streetLength, 0)) > 0) { //wenn aktuell betrachtete Anfrage sich mit betrachtetem Querstreifen überschneidet
+                    for (int j = verwendet[i].position; j < verwendet[i].position + verwendet[i].länge; j++) { //gehe Bereich ab, in dem sich betrachtete Anfrage befindet und setze alle spotsvertikal Einträge an dieser Stelle auf false
                         spotsVertikal[j] = false;
                     }
                 }
             }
             List<int> spots = new List<int>();
-            for(int i = 0; i < streetLength - afr.länge; i++) {
+            for (int i = 0; i < streetLength - afr.länge; i++) {
                 bool spotHorizontal = true;
-                for(int j = 0; j < afr.länge; j++) {
+                for (int j = 0; j < afr.länge; j++) {
                     if (spotsVertikal[i + j] == false) {
                         spotHorizontal = false;
                         i += j; // wenn an Stelle i+j false ist, kann man die Stellen zwischen i und i+j überspringen, da auf jeden Fall keine ganze afr.länge mher reinpasst
@@ -379,6 +416,28 @@ namespace BwInf_39._2._1_Flohmarkt {
                 }
             }
             return spots;
+        }
+
+        int findNearestVal(int target, List<int> list) {
+            int erg;
+            if (target >= list[list.Count - 1]) { erg = list.Count - 1; }
+            else if (target <= list[0]) { erg = 0; }
+            else {
+                erg = list.BinarySearch(target);
+                if (erg <= 0) {
+                    erg = ~erg;
+                    erg = (list[erg] - target < target - list[erg - 1]) ? erg : erg - 1;
+                }
+            }
+            return erg;
+        }
+
+        public static int compareByCost(Anfrage x, Anfrage y) {
+            int costX = x.mietdauer * x.länge;
+            int costY = y.mietdauer * y.länge;
+            if (costX > costY) { return -1; }
+            else if (costY < costY) { return 1; }
+            return 0;
         }
     }
 }
