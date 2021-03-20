@@ -55,6 +55,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             foreach (Anfrage a in anfragen.verwendet) {
                 a.position = rnd.Next(streetLength - a.länge);
             }
+            int countIDsToRemove = 0;
             for (int i = 0; i < anfragen.verwendet.Count; i++) {
                 List<int> idToRemove = new List<int>();
                 for (int j = anfragen.verwendet.Count-1; j > i; j--) {
@@ -64,8 +65,11 @@ namespace BwInf_39._2._1_Flohmarkt {
                     }
                 }
                 anfragen.verwendet.RemoveAll(x => idToRemove.Contains(x.id));
+
+                countIDsToRemove += idToRemove.Count;
             }
             Console.WriteLine(energy12(anfragen.verwendet));
+            
         }
 
         public void simulate1() {
@@ -315,6 +319,45 @@ namespace BwInf_39._2._1_Flohmarkt {
             return false;
         }
 
+        public (int anzahl,  int summe) sumAllÜberschneidungen(List<Anfrage> verwendet) {
+            int summe = 0; int anzahl = 0;
+            foreach (Anfrage i in verwendet) {
+                foreach (Anfrage j in verwendet) {
+                    if (i.id != j.id) {
+                        int überschneidung = i.überschneidung(j);
+                        summe += überschneidung;
+                        anzahl += (überschneidung > 0 ? 1 : 0);
+                    }
+                }
+            }
+            return (anzahl, summe);
+        }
+
+        public List<int> getFreePositions(Anfrage afr, List<Anfrage> verwendet) {
+            bool[] spotsVertikal = new bool[streetLength];
+            for (int i = 0; i < verwendet.Count; i++) {
+                if(verwendet[i].überschneidung(new Anfrage(-1, afr.mietbeginn, afr.mietende, streetLength, 0)) > 0) { //wenn aktuell betrachtete Anfrage sich mit betrachtetem Querstreifen überschneidet
+                    for(int j = verwendet[i].position; j < verwendet[i].position + verwendet[i].länge; i++) { //gehe Bereich ab, in dem sich betrachtete Anfrage befindet und setze alle spotsvertikal Einträge an dieser Stelle auf false
+                        spotsVertikal[j] = false;
+                    }
+                }
+            }
+            List<int> spots = new List<int>();
+            for(int i = 0; i < streetLength - afr.länge; i++) {
+                bool spotHorizontal = true;
+                for(int j = 0; j < afr.länge; j++) {
+                    if (spotsVertikal[i + j] == false) {
+                        spotHorizontal = false;
+                        i += j; // wenn an Stelle i+j false ist, kann man die Stellen zwischen i und i+j überspringen, da auf jeden Fall keine ganze afr.länge mher reinpasst
+                        break;
+                    }
+                }
+                if (spotHorizontal) {
+                    spots.Add(i);
+                }
+            }
+            return spots;
+        }
     }
 }
 

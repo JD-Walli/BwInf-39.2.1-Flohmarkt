@@ -9,6 +9,8 @@ namespace BwInf_39._2._1_Flohmarkt {
         static void Main(string[] args) {
             simulatedAnnealing simAnn = new simulatedAnnealing(readData(2), 1000, 10, 24,70000,0.99994);
             simAnn.setRandomPos3();
+            Console.ReadLine();
+
             simAnn.simulate1();
             Console.WriteLine("bestenergy: " + simAnn.bestEnergy());
             Console.WriteLine(simAnn.anfragen.verwendet.Count);
