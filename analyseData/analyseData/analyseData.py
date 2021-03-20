@@ -34,9 +34,10 @@ yes=yes.reshape(2,len(df1.Länge))
 yes=np.rot90(yes,3)
 
 
-fig = plt.figure() 
-ax = plt.axes(projection ='3d') 
+#fig = plt.figure() 
+#ax = plt.axes(projection ='3d') 
 #ax.plot3D(einzelDauerProStand,mengeDauer,avLänge) 
-for i in range(len(xes)):
-    ax.plot3D(xes[i],yes[i],[i,i])
+#for i in range(len(xes)):
+#    ax.plot3D(xes[i],yes[i],[i,i])
+plt.bar(einzelPreisProStand,menge)
 plt.show()
