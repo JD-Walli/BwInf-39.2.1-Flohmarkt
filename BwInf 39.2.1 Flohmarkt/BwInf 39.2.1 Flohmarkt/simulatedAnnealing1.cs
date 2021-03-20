@@ -69,7 +69,29 @@ namespace BwInf_39._2._1_Flohmarkt {
                 countIDsToRemove += idToRemove.Count;
             }
             Console.WriteLine(energy12(anfragen.verwendet));
-            
+
+        }
+
+        /// <summary>
+        /// setzt zufällige Positionen, auch auf abgelehnt Liste; keine Überschneidungen zugelassen; fängt bei sperrigen Anfragen an
+        /// </summary>
+        public void setRandomPos4() {
+            (List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLoc; anfragenLoc.verwendet = new List<Anfrage>();anfragenLoc.abgelehnt = new List<Anfrage>();
+            foreach (Anfrage afr in anfragen.verwendet) { anfragenLoc.verwendet.Add(afr.clone()); }
+            foreach (Anfrage afr in anfragen.abgelehnt) { anfragenLoc.abgelehnt.Add(afr.clone()); }
+            anfragen.verwendet.Clear();anfragen.abgelehnt.Clear();
+            anfragenLoc.verwendet.Sort(compareByCost);
+            foreach (Anfrage a in anfragenLoc.verwendet) {
+                List<int> freePos = getFreePositions(a, anfragen.verwendet);
+                if (freePos.Count > 0) {
+                    a.position = freePos[rnd.Next(freePos.Count)];
+                    anfragen.verwendet.Add(a);
+                }
+                else {
+                    a.position = 0;
+                    anfragen.abgelehnt.Add(a);
+                }
+            }
         }
 
         public void simulate1() {
