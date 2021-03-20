@@ -58,7 +58,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             int countIDsToRemove = 0;
             for (int i = 0; i < anfragen.verwendet.Count; i++) {
                 List<int> idToRemove = new List<int>();
-                for (int j = anfragen.verwendet.Count-1; j > i; j--) {
+                for (int j = anfragen.verwendet.Count - 1; j > i; j--) {
                     if (anfragen.verwendet[i].überschneidung(anfragen.verwendet[j]) > 0) {
                         anfragen.abgelehnt.Add(anfragen.verwendet[j]);
                         idToRemove.Add(anfragen.verwendet[j].id);
@@ -116,7 +116,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 
                 if (newEnergy <= currentEnergy || rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)) {//|| rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)
                     currentEnergy = newEnergy;
-                    Console.WriteLine(i + " : " + currentEnergy + " \t" + currentAnfragen.verwendet.Count + " " + currentAnfragen.abgelehnt.Count);
+                    Console.WriteLine(i + " : " + currentEnergy + " \t" + newAnfragen.verwendet.Count + " " + newAnfragen.abgelehnt.Count + "  " + sumAllÜberschneidungen(newAnfragen.verwendet).anzahl + " Üs");
                     currentAnfragen.verwendet.Clear(); currentAnfragen.abgelehnt.Clear();
                     foreach (Anfrage afr in newAnfragen.verwendet) { currentAnfragen.verwendet.Add(afr.clone()); }
                     foreach (Anfrage afr in newAnfragen.abgelehnt) { currentAnfragen.abgelehnt.Add(afr.clone()); }
@@ -136,7 +136,8 @@ namespace BwInf_39._2._1_Flohmarkt {
                 temp *= verkleinerungsrate;//200000, 130, 0.999972 //70000,74,0.99997 //70000,23,0.99994
             }
             Console.WriteLine("done");
-            anfragen = currentAnfragen;
+            anfragen.abgelehnt = currentAnfragen.abgelehnt;
+            anfragen.verwendet = currentAnfragen.verwendet;
             //plotPosEnergyDiffs(posEnergyDiffs);
             plotEnergy(energies);
         }
@@ -152,7 +153,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             return anfragen;
         }
 
-
+        //verschieben und swappen
         public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) makeMove2((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp) {
             int rnd1 = rnd.Next(100);
             if (rnd1 < 60) { //verschiebe
@@ -175,6 +176,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             return (anfragen.verwendet, anfragen.abgelehnt);
         }
 
+        //wie 2; ohne Überschneidungen (iterativ-zufälliger Ansatz)
         public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) makeMove3((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp) {
             int rnd1 = rnd.Next(100);
             if (rnd1 < 60) { //verschiebe
@@ -182,9 +184,9 @@ namespace BwInf_39._2._1_Flohmarkt {
                 for (int i = 0; i < 1000; i++) {//versuche 100 mal einen move zu finden, bei dem keine überschneidung rauskommt
                     int x = rnd.Next(streetLength - anfragen.verwendet[afr].länge) - anfragen.verwendet[afr].position;
                     //int move = (int)(x * (temp / startTemperature)); 
-                    int move=x;
+                    int move = x;
                     move = (move == 0) ? ((x > 0) ? +1 : -1) : move;
-                    if (!checkIfÜberschneidung(new Anfrage(anfragen.verwendet[afr].id, anfragen.verwendet[afr].mietbeginn, anfragen.verwendet[afr].mietende, anfragen.verwendet[afr].länge, anfragen.verwendet[afr].position + move))) {
+                    if (!checkIfÜberschneidung(new Anfrage(anfragen.verwendet[afr].id, anfragen.verwendet[afr].mietbeginn, anfragen.verwendet[afr].mietende, anfragen.verwendet[afr].länge, anfragen.verwendet[afr].position + move), anfragen.verwendet)) {
                         anfragen.verwendet[afr].position += move;
                         break;
                     }
@@ -201,7 +203,7 @@ namespace BwInf_39._2._1_Flohmarkt {
                     int rnd3 = rnd.Next(anfragen.abgelehnt.Count);
                     for (int i = 0; i < 1000; i++) {
                         int newPos = rnd.Next(streetLength - anfragen.abgelehnt[rnd3].länge);
-                        if (!checkIfÜberschneidung(new Anfrage(anfragen.abgelehnt[rnd3].id, anfragen.abgelehnt[rnd3].mietbeginn, anfragen.abgelehnt[rnd3].mietende, anfragen.abgelehnt[rnd3].länge, newPos))) {
+                        if (!checkIfÜberschneidung(new Anfrage(anfragen.abgelehnt[rnd3].id, anfragen.abgelehnt[rnd3].mietbeginn, anfragen.abgelehnt[rnd3].mietende, anfragen.abgelehnt[rnd3].länge, newPos),anfragen.verwendet)) {
                             anfragen.abgelehnt[rnd3].position = newPos;
                             anfragen.verwendet.Add(anfragen.abgelehnt[rnd3]);
                             anfragen.abgelehnt.RemoveAt(rnd3);
@@ -368,16 +370,16 @@ namespace BwInf_39._2._1_Flohmarkt {
             Console.WriteLine("bei einer Energie von " + energy + "; einer effektiven energie von " + chartEnergy(anfragenLocal) + " und einer arbeitsenergie von " + energy2(anfragenLocal, 3)); ;
         }
 
-        public bool checkIfÜberschneidung(Anfrage afr) {
-            for (int i = 0; i < anfragen.verwendet.Count; i++) {
-                if (anfragen.verwendet[i].überschneidung(afr) > 0 && afr.id != anfragen.verwendet[i].id) {
+        public bool checkIfÜberschneidung(Anfrage afr, List<Anfrage> verwendet) {
+            for (int i = 0; i < verwendet.Count; i++) {
+                if (verwendet[i].überschneidung(afr) > 0 && afr.id != verwendet[i].id) {
                     return true;
                 }
             }
             return false;
         }
 
-        public (int anzahl,  int summe) sumAllÜberschneidungen(List<Anfrage> verwendet) {
+        public (int anzahl, int summe) sumAllÜberschneidungen(List<Anfrage> verwendet) {
             int summe = 0; int anzahl = 0;
             foreach (Anfrage i in verwendet) {
                 foreach (Anfrage j in verwendet) {

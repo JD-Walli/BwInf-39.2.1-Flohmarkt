@@ -32,5 +32,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         }
 
         public Anfrage clone() { return new Anfrage(this.id, this.mietbeginn, this.mietende, this.länge, this.position); }
+
+        
     }
 }
