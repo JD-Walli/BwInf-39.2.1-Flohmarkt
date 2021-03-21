@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace BwInf_39._2._1_Flohmarkt {
-    class simulatedAnnealing {//Ziel: Überschneidungen auf 0 bringen
+    class simulatedAnnealing {
         int startTemperature;
         public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen;
         int streetLength;
@@ -14,6 +14,8 @@ namespace BwInf_39._2._1_Flohmarkt {
         int durchläufe;
         double verkleinerungsrate;
         Random rnd = new Random();
+
+        #region constructors
 
         public simulatedAnnealing(List<Anfrage> anfragen, int streetLength, int duration, int startTemperature, int durchläufe, double verkleinerungsrate) {
             this.anfragen.verwendet = anfragen;
@@ -27,7 +29,14 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         public simulatedAnnealing() { }
 
-        public void setRandomPos1() {
+        #endregion
+
+        #region setPositions
+
+        /// <summary>
+        /// setzt zufällige Positionen
+        /// </summary>
+        public void setRandomPositions1() {
             foreach (Anfrage a in anfragen.verwendet) {
                 a.position = rnd.Next(streetLength - a.länge);
             }
@@ -37,7 +46,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// setzt zufällige Positionen, auch auf abgelehnt Liste
         /// </summary>
         /// <param name="anteilAbgelehnt">anteil in Prozent der auf die Warteliste gesetzten</param>
-        public void setRandomPos2(int anteilAbgelehnt) {
+        public void setRandomPositions2(int anteilAbgelehnt) {
             foreach (Anfrage a in anfragen.verwendet) {
                 a.position = rnd.Next(streetLength - a.länge);
             }
@@ -51,7 +60,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// <summary>
         /// setzt zufällige Positionen, auch auf abgelehnt Liste; keine Überschneidungen zugelassen
         /// </summary>
-        public void setRandomPos3() {
+        public void setRandomPositions3() {
             foreach (Anfrage a in anfragen.verwendet) {
                 a.position = rnd.Next(streetLength - a.länge);
             }
@@ -59,7 +68,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             for (int i = 0; i < anfragen.verwendet.Count; i++) {
                 List<int> idToRemove = new List<int>();
                 for (int j = anfragen.verwendet.Count - 1; j > i; j--) {
-                    if (anfragen.verwendet[i].überschneidung(anfragen.verwendet[j]) > 0) {
+                    if (anfragen.verwendet[i].overlap(anfragen.verwendet[j]) > 0) {
                         anfragen.abgelehnt.Add(anfragen.verwendet[j]);
                         idToRemove.Add(anfragen.verwendet[j].id);
                     }
@@ -68,21 +77,19 @@ namespace BwInf_39._2._1_Flohmarkt {
 
                 countIDsToRemove += idToRemove.Count;
             }
-            Console.WriteLine(energy12(anfragen.verwendet));
-
         }
 
         /// <summary>
         /// setzt zufällige Positionen, auch auf abgelehnt Liste; keine Überschneidungen zugelassen; fängt bei sperrigen Anfragen an
         /// </summary>
-        public void setRandomPos4() {
-            (List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLoc; anfragenLoc.verwendet = new List<Anfrage>();anfragenLoc.abgelehnt = new List<Anfrage>();
+        public void setRandomPositions4() {
+            (List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLoc; anfragenLoc.verwendet = new List<Anfrage>(); anfragenLoc.abgelehnt = new List<Anfrage>();
             foreach (Anfrage afr in anfragen.verwendet) { anfragenLoc.verwendet.Add(afr.clone()); }
             foreach (Anfrage afr in anfragen.abgelehnt) { anfragenLoc.abgelehnt.Add(afr.clone()); }
-            anfragen.verwendet.Clear();anfragen.abgelehnt.Clear();
-            anfragenLoc.verwendet.Sort(compareByCost);
+            anfragen.verwendet.Clear(); anfragen.abgelehnt.Clear();
+            anfragenLoc.verwendet.Sort(compareByRent4);
             foreach (Anfrage a in anfragenLoc.verwendet) {
-                List<int> freePos = getFreePositions(a, anfragen.verwendet);
+                List<int> freePos = findFreePositions4(a, anfragen.verwendet);
                 if (freePos.Count > 0) {
                     a.position = freePos[rnd.Next(freePos.Count)];
                     anfragen.verwendet.Add(a);
@@ -94,9 +101,11 @@ namespace BwInf_39._2._1_Flohmarkt {
             }
         }
 
-        public void simulate1() {
+        #endregion
+
+        public void simulate() {
             double temp = startTemperature;
-            int currentEnergy = energy2(anfragen.verwendet, startTemperature);//variabel
+            int currentEnergy = energy(anfragen.verwendet, startTemperature);//variabel
             int bestEnergy = currentEnergy;
             List<int> energies = new List<int>();
             (List<Anfrage> verwendet, List<Anfrage> abgelehnt) besteVerteilung; besteVerteilung.verwendet = new List<Anfrage>(); besteVerteilung.abgelehnt = new List<Anfrage>();
@@ -105,18 +114,14 @@ namespace BwInf_39._2._1_Flohmarkt {
             foreach (Anfrage afr in anfragen.verwendet) { newAnfragen.verwendet.Add(afr.clone()); currentAnfragen.verwendet.Add(afr.clone()); }
             foreach (Anfrage afr in anfragen.abgelehnt) { newAnfragen.abgelehnt.Add(afr.clone()); currentAnfragen.abgelehnt.Add(afr.clone()); }
             besteVerteilung = currentAnfragen;
-            List<int> posEnergyDiffs = new List<int>();
-            for (int i = 0; i < durchläufe; i++) {
 
-                newAnfragen = makeMove4(newAnfragen, temp); //variabel
-                int newEnergy = energy2(newAnfragen.verwendet, temp);//variabel
-                if (newEnergy > currentEnergy) {
-                    posEnergyDiffs.Add(newEnergy - currentEnergy);
-                }
+            for (int i = 0; i < durchläufe; i++) {
+                newAnfragen = move2(newAnfragen, temp); //variabel
+                int newEnergy = energy(newAnfragen.verwendet, temp);//variabel
 
                 if (newEnergy <= currentEnergy || rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)) {//|| rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)
                     currentEnergy = newEnergy;
-                    Console.WriteLine(i + " : " + currentEnergy + " \t" + newAnfragen.verwendet.Count + " " + newAnfragen.abgelehnt.Count + "  " + sumAllÜberschneidungen(newAnfragen.verwendet).anzahl + " Üs");
+                    Console.WriteLine(i + " : " + currentEnergy + " \t" + newAnfragen.verwendet.Count + " " + newAnfragen.abgelehnt.Count + "  " + sumOverlap(newAnfragen.verwendet).anzahl + " Üs");
                     currentAnfragen.verwendet.Clear(); currentAnfragen.abgelehnt.Clear();
                     foreach (Anfrage afr in newAnfragen.verwendet) { currentAnfragen.verwendet.Add(afr.clone()); }
                     foreach (Anfrage afr in newAnfragen.abgelehnt) { currentAnfragen.abgelehnt.Add(afr.clone()); }
@@ -132,62 +137,68 @@ namespace BwInf_39._2._1_Flohmarkt {
                     foreach (Anfrage afr in currentAnfragen.verwendet) { newAnfragen.verwendet.Add(afr.clone()); }
                     foreach (Anfrage afr in currentAnfragen.abgelehnt) { newAnfragen.abgelehnt.Add(afr.clone()); }
                 }
-                energies.Add(chartEnergy(currentAnfragen.verwendet));
+                energies.Add(energyChart(currentAnfragen.verwendet));
                 temp *= verkleinerungsrate;//200000, 130, 0.999972 //70000,74,0.99997 //70000,23,0.99994
             }
+
             Console.WriteLine("done");
-            anfragen.abgelehnt = currentAnfragen.abgelehnt;
-            anfragen.verwendet = currentAnfragen.verwendet;
-            //plotPosEnergyDiffs(posEnergyDiffs);
             plotEnergy(energies);
+            Console.WriteLine("beste vorgekommene energie: " + bestEnergy);
+
+            anfragen.verwendet.Clear(); anfragen.abgelehnt.Clear();
+            foreach (Anfrage afr in currentAnfragen.verwendet) { anfragen.verwendet.Add(afr.clone()); }
+            foreach (Anfrage afr in currentAnfragen.abgelehnt) { anfragen.abgelehnt.Add(afr.clone()); }
+
+            printEnding(currentAnfragen);
         }
 
-        //move der weiter weg geht wird untewahrscheinlicher je kleiner temp wird (rnd wird als koordinatenursprung angenommen; move=rnd*(temp/startTemp)
-        List<Anfrage> makeMove1(List<Anfrage> anfragen, double temp) {
-            int afr = rnd.Next(anfragen.Count());
-            int x = rnd.Next(streetLength - anfragen[afr].länge) - anfragen[afr].position;
-            int move = (int)(x * (temp / startTemperature));
+        #region moves
+
+        //verschieben: weiter weg wird unwahrscheinlicher je kleiner temp wird (afr.pos wird als koordinatenursprung angenommen; move=rnd*(temp/startTemp))
+        List<Anfrage> move1(List<Anfrage> anfragen, double temp) {
+            int index = rnd.Next(anfragen.Count());
+            int x = rnd.Next(streetLength - anfragen[index].länge) - anfragen[index].position;
+            int move = (int)(x * (1 - temp / startTemperature));
             move = (move == 0) ? ((x > 0) ? +1 : -1) : move;
-            //Console.WriteLine("                      " + move + "  " + (int)temp);
-            anfragen[afr].position += move;
+            anfragen[index].position += move;
             return anfragen;
         }
 
-        //verschieben und swappen
-        public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) makeMove2((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp) {
+        //verschieben (wie move1) und swappen
+        public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) move2((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp) {
             int rnd1 = rnd.Next(100);
             if (rnd1 < 60) { //verschiebe
-                anfragen.verwendet = makeMove1(anfragen.verwendet, temp);
+                anfragen.verwendet = move1(anfragen.verwendet, temp);
             }
             else {// swappe
                 int rnd2 = rnd.Next(100);
                 if (rnd2 < 50 || anfragen.abgelehnt.Count == 0) {//reinswap
-                    int rnd3 = rnd.Next(anfragen.verwendet.Count);
-                    anfragen.abgelehnt.Add(anfragen.verwendet[rnd3]);
-                    anfragen.verwendet.RemoveAt(rnd3);
+                    int index = rnd.Next(anfragen.verwendet.Count);
+                    anfragen.abgelehnt.Add(anfragen.verwendet[index]);
+                    anfragen.verwendet.RemoveAt(index);
                 }
                 else {//rausswap
-                    int rnd3 = rnd.Next(anfragen.abgelehnt.Count);
-                    anfragen.abgelehnt[rnd3].position = rnd.Next(streetLength - anfragen.abgelehnt[rnd3].länge);
-                    anfragen.verwendet.Add(anfragen.abgelehnt[rnd3]);
-                    anfragen.abgelehnt.RemoveAt(rnd3);
+                    int index = rnd.Next(anfragen.abgelehnt.Count);
+                    anfragen.abgelehnt[index].position = rnd.Next(streetLength - anfragen.abgelehnt[index].länge);
+                    anfragen.verwendet.Add(anfragen.abgelehnt[index]);
+                    anfragen.abgelehnt.RemoveAt(index);
                 }
             }
             return (anfragen.verwendet, anfragen.abgelehnt);
         }
 
-        //wie 2; ohne Überschneidungen (iterativ-zufälliger Ansatz)
-        public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) makeMove3((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp) {
+        //verschieben und swappen ohne Überschneidungen (1000 mal probieren ob Platz gefunden wird)
+        public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) move3((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp) {
             int rnd1 = rnd.Next(100);
             if (rnd1 < 60) { //verschiebe
-                int afr = rnd.Next(anfragen.verwendet.Count());
+                int index = rnd.Next(anfragen.verwendet.Count());
                 for (int i = 0; i < 1000; i++) {//versuche 100 mal einen move zu finden, bei dem keine überschneidung rauskommt
-                    int x = rnd.Next(streetLength - anfragen.verwendet[afr].länge) - anfragen.verwendet[afr].position;
-                    //int move = (int)(x * (temp / startTemperature)); 
+                    int x = rnd.Next(streetLength - anfragen.verwendet[index].länge) - anfragen.verwendet[index].position;
                     int move = x;
+                    //move = (int)(move * (1 - temp / startTemperature)); 
                     move = (move == 0) ? ((x > 0) ? +1 : -1) : move;
-                    if (!checkIfÜberschneidung(new Anfrage(anfragen.verwendet[afr].id, anfragen.verwendet[afr].mietbeginn, anfragen.verwendet[afr].mietende, anfragen.verwendet[afr].länge, anfragen.verwendet[afr].position + move), anfragen.verwendet)) {
-                        anfragen.verwendet[afr].position += move;
+                    if (!checkIfOverlap3(new Anfrage(anfragen.verwendet[index].id, anfragen.verwendet[index].mietbeginn, anfragen.verwendet[index].mietende, anfragen.verwendet[index].länge, anfragen.verwendet[index].position + move), anfragen.verwendet)) {
+                        anfragen.verwendet[index].position += move;
                         break;
                     }
                 }
@@ -195,18 +206,18 @@ namespace BwInf_39._2._1_Flohmarkt {
             else {// swappe
                 int rnd2 = rnd.Next(100);
                 if ((rnd2 < 50 || anfragen.abgelehnt.Count == 0) && anfragen.verwendet.Count > 0) {//reinswap
-                    int rnd3 = rnd.Next(anfragen.verwendet.Count);
-                    anfragen.abgelehnt.Add(anfragen.verwendet[rnd3]);
-                    anfragen.verwendet.RemoveAt(rnd3);
+                    int index = rnd.Next(anfragen.verwendet.Count);
+                    anfragen.abgelehnt.Add(anfragen.verwendet[index]);
+                    anfragen.verwendet.RemoveAt(index);
                 }
                 else {//rausswap
-                    int rnd3 = rnd.Next(anfragen.abgelehnt.Count);
+                    int index = rnd.Next(anfragen.abgelehnt.Count);
                     for (int i = 0; i < 1000; i++) {
-                        int newPos = rnd.Next(streetLength - anfragen.abgelehnt[rnd3].länge);
-                        if (!checkIfÜberschneidung(new Anfrage(anfragen.abgelehnt[rnd3].id, anfragen.abgelehnt[rnd3].mietbeginn, anfragen.abgelehnt[rnd3].mietende, anfragen.abgelehnt[rnd3].länge, newPos),anfragen.verwendet)) {
-                            anfragen.abgelehnt[rnd3].position = newPos;
-                            anfragen.verwendet.Add(anfragen.abgelehnt[rnd3]);
-                            anfragen.abgelehnt.RemoveAt(rnd3);
+                        int newPos = rnd.Next(streetLength - anfragen.abgelehnt[index].länge);
+                        if (!checkIfOverlap3(new Anfrage(anfragen.abgelehnt[index].id, anfragen.abgelehnt[index].mietbeginn, anfragen.abgelehnt[index].mietende, anfragen.abgelehnt[index].länge, newPos), anfragen.verwendet)) {
+                            anfragen.abgelehnt[index].position = newPos;
+                            anfragen.verwendet.Add(anfragen.abgelehnt[index]);
+                            anfragen.abgelehnt.RemoveAt(index);
                             break;
                         }
                     }
@@ -215,232 +226,217 @@ namespace BwInf_39._2._1_Flohmarkt {
             return (anfragen.verwendet, anfragen.abgelehnt);
         }
 
-
-        public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) makeMove4((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp) {
+        //verschieben und swappen ohne Überschneidungen (nur an Position wo sicher keine Überschneidungen auftreten)
+        public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) move4((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp) {
             int rnd1 = rnd.Next(100);
-            if (rnd1 < 60 && anfragen.verwendet.Count>0) { //verschiebe
-                int afr = rnd.Next(anfragen.verwendet.Count());
-                int x = rnd.Next(streetLength - anfragen.verwendet[afr].länge) - anfragen.verwendet[afr].position;
-                //int move = (int)(x * (temp / startTemperature)); 
+            if (rnd1 < 40 && anfragen.verwendet.Count > 0) { //verschiebe
+                int index = rnd.Next(anfragen.verwendet.Count());
+                int x = rnd.Next(streetLength - anfragen.verwendet[index].länge) - anfragen.verwendet[index].position;
                 int move = x;
+                //move = (int)(move * (1 - temp / startTemperature)); 
                 move = (move == 0) ? ((x > 0) ? +1 : -1) : move;
-                List<int> freePositions = getFreePositions(anfragen.verwendet[afr], anfragen.verwendet);
+                List<int> freePositions = findFreePositions4(anfragen.verwendet[index], anfragen.verwendet);
                 if (freePositions.Count > 0) {
-                    anfragen.verwendet[afr].position = freePositions[findNearestVal(anfragen.verwendet[afr].position + move, freePositions)];
+                    anfragen.verwendet[index].position = freePositions[findClosestValue4(anfragen.verwendet[index].position + move, freePositions)];
                 }
             }
             else {// swappe
                 int rnd2 = rnd.Next(100);
                 if ((rnd2 < 50 || anfragen.abgelehnt.Count == 0) && anfragen.verwendet.Count > 0) {//reinswap
-                    int rnd3 = rnd.Next(anfragen.verwendet.Count);
-                    anfragen.abgelehnt.Add(anfragen.verwendet[rnd3]);
-                    anfragen.verwendet.RemoveAt(rnd3);
+                    int index = rnd.Next(anfragen.verwendet.Count);
+                    anfragen.abgelehnt.Add(anfragen.verwendet[index]);
+                    anfragen.verwendet.RemoveAt(index);
                 }
                 else {//rausswap
-                    int afr = rnd.Next(anfragen.abgelehnt.Count);
-                    List<int> freePositions = getFreePositions(anfragen.abgelehnt[afr], anfragen.verwendet);
+                    int index = rnd.Next(anfragen.abgelehnt.Count);
+                    List<int> freePositions = findFreePositions4(anfragen.abgelehnt[index], anfragen.verwendet);
                     if (freePositions.Count > 0) {
-                        anfragen.abgelehnt[afr].position = freePositions[rnd.Next(freePositions.Count)];
-                        anfragen.verwendet.Add(anfragen.abgelehnt[afr]);
-                        anfragen.abgelehnt.RemoveAt(afr);
+                        anfragen.abgelehnt[index].position = freePositions[rnd.Next(freePositions.Count)];
+                        anfragen.verwendet.Add(anfragen.abgelehnt[index]);
+                        anfragen.abgelehnt.RemoveAt(index);
                     }
-
                 }
             }
             return (anfragen.verwendet, anfragen.abgelehnt);
         }
 
+        #endregion
 
-        //plots all currentenergy-newenergy elements which making the energy higher
-        void plotPosEnergyDiffs(List<int> energyDiffs) {
-            List<float> xVals = new List<float>();
-            List<float> yVals = new List<float>();
-            foreach (int en in energyDiffs) {
-                if (en > 0) {
-                    bool foundsame = false;
-                    for (int i = 0; i < xVals.Count; i++) {
-                        if (en == xVals[i]) {
-                            yVals[i]++;
-                            foundsame = true;
-                            break;
-                        }
-                    }
-                    if (foundsame == false) {
-                        xVals.Add(en); yVals.Add(1);
-                    }
-                }
-            }
-            Application.Run(new chart(xVals.ToArray(), yVals.ToArray()));
+        #region energy
 
-        }
-
-        void plotEnergy(List<int> energies) {
-            List<float> xVals = new List<float>();
-            List<float> yVals = new List<float>();
-            for (int i = 0; i < energies.Count; i++) {
-                xVals.Add(i); yVals.Add(energies[i]);
-
-            }
-            Application.Run(new chart(xVals.ToArray(), yVals.ToArray()));
-
-        }
-
-        public int energy1(List<Anfrage> anfragenLocal) {
+        /// <summary>
+        /// summiert die Miete, die der Veranstalter mit gegebener Verteilung einnimmt. Überschneidungen nicht berücksichtigt!
+        /// </summary>
+        /// <returns>-rent</returns>
+        public int sumRent(List<Anfrage> anfragenLocal) {
             int energy = 0;
             for (int i = 0; i < anfragenLocal.Count; i++) {
-                for (int j = 0; j < anfragenLocal.Count; j++) {
-                    if (i != j) {
-                        energy += anfragenLocal[i].überschneidung(anfragenLocal[j]);
-                        //Console.WriteLine("  " + anfragenLocal[i].id + ", " + anfragenLocal[j].id + " -> " + anfragenLocal[i].überschneidung(anfragenLocal[j]) + "  " + energy);
-                    }
-                }
-            }
-            return energy / 2;
-        }
-
-        //gleich wie energy1 ohne doppelte zählung -> skaliert besser
-        public int energy12(List<Anfrage> anfragenLocal) {
-            int energy = 0;
-
-            for (int i = 0; i < anfragenLocal.Count; i++) {
-                for (int j = 0; j < i; j++) {
-                    if (i != j) {
-                        energy += anfragenLocal[i].überschneidung(anfragenLocal[j]);
-                    }
-                }
-            }
-            return energy;
-        }
-
-        public int bestEnergy() {
-            int energy = 0;
-            List<Anfrage> anfragenLocalmerged = anfragen.verwendet;
-            anfragenLocalmerged.AddRange(anfragen.abgelehnt);
-            for (int i = 0; i < anfragenLocalmerged.Count; i++) {
-                energy -= anfragenLocalmerged[i].länge * anfragenLocalmerged[i].mietdauer;
+                energy -= anfragenLocal[i].länge * anfragenLocal[i].mietdauer;
             }
             return energy;
         }
 
         /// <summary>
-        /// energieberechnung: - belegteFläche + f * Überschneidung
+        /// summiert die Überschneidung aller Anfragen / zählt die Anzahl der Überschneidungen
+        /// </summary>
+        /// <param name="anfragenLocal">Anfragen die überprüft werden sollen</param>
+        /// <returns>Tuple (anzahl der Überschneidungen, summe der Überschneidungen)</returns>
+        public (int anzahl, int summe) sumOverlap(List<Anfrage> anfragenLocal) {
+            int summe = 0; int anzahl = 0;
+            for (int i = 0; i < anfragenLocal.Count; i++) {
+                for (int j = 0; j < i; j++) {
+                    if (anfragenLocal[i].id != anfragenLocal[j].id) {
+                        int overlap = anfragenLocal[i].overlap(anfragenLocal[j]);
+                        summe += overlap;
+                        anzahl += (overlap > 0 ? 1 : 0);
+                    }
+                }
+            }
+            return (anzahl, summe);
+        }
+
+        /// <summary>
+        /// -rent + n*overlap
         /// </summary>
         /// <param name="anfragenLocal">nur auf dem Feld plazierte Anfragen, keine auf Warteliste</param>
-        /// <returns>Energie</returns>
-        public int energy2(List<Anfrage> anfragenLocal, double temperatur) {
-            int energy = 0;
-            for (int i = 0; i < anfragenLocal.Count; i++) {
-                energy -= anfragenLocal[i].länge * anfragenLocal[i].mietdauer;
-            }
-            //Console.WriteLine(energy12(anfragenLocal) * (int)(((temperatur / startTemperature) * 5) + 1));
-            energy += energy12(anfragenLocal) * 7;// * (int)(((temperatur / startTemperature) * 20) + 1); //Überschneidung wird "wichtiger", je größer die Temperatur wird
+        /// <returns>-rent + n*overlap</returns>
+        public int energy(List<Anfrage> anfragenLocal, double temperatur) {
+            int energy = sumRent(anfragenLocal);
+            energy += sumOverlap(anfragenLocal).summe * (int)(((temperatur / startTemperature) * 50) + 1);// * (int)(((temperatur / startTemperature) * 20) + 1); //Überschneidung wird "wichtiger", je größer die Temperatur wird
             return energy;
         }
 
-        public int chartEnergy(List<Anfrage> anfragenLocal) {
+        /// <summary>
+        /// -rent+overlap; berechnet Kosten, die für das Diagramm verwendet werden
+        /// </summary>
+        /// <param name="anfragenLocal"></param>
+        /// <returns></returns>
+        public int energyChart(List<Anfrage> anfragenLocal) {
             int energy = 0;
             for (int i = 0; i < anfragenLocal.Count; i++) {
                 energy -= anfragenLocal[i].länge * anfragenLocal[i].mietdauer;
             }
-            for (int i = 0; i < anfragenLocal.Count; i++) {
-                for (int j = 0; j < i; j++) {
-                    if (i != j) {
-                        energy += anfragenLocal[i].überschneidung(anfragenLocal[j]);
-                    }
-                }
-            }
+            energy += sumOverlap(anfragenLocal).summe;
             return energy;
         }
+        
+        #endregion
 
-        public void printFinish(List<Anfrage> anfragenLocal) {
-            int anzahlÜberschneidungen = 0;
-            for (int i = 0; i < anfragenLocal.Count; i++) {
-                for (int j = 0; j < i; j++) {
-                    if (i != j) {
-                        if (anfragenLocal[i].überschneidung(anfragenLocal[j]) > 0)
-                            anzahlÜberschneidungen++;
-                    }
-                }
+        #region ending
+
+        /// <summary>
+        /// zeichnet gegebene Energien als Graph; x=zeitpunkt y=energie
+        /// </summary>
+        /// <param name="energies">liste mit Energien</param>
+        void plotEnergy(List<int> energies) {
+            List<float> xVals = new List<float>();
+            List<float> yVals = new List<float>();
+            for (int i = 0; i < energies.Count; i++) {
+                xVals.Add(i); yVals.Add(energies[i]);
             }
-            int energy = 0;
-            for (int i = 0; i < anfragenLocal.Count; i++) {
-                energy -= anfragenLocal[i].länge * anfragenLocal[i].mietdauer;
-            }
-            Console.WriteLine(anzahlÜberschneidungen + " überschneidungen");
-            Console.WriteLine("bei einer Energie von " + energy + "; einer effektiven energie von " + chartEnergy(anfragenLocal) + " und einer arbeitsenergie von " + energy2(anfragenLocal, 3)); ;
+            Application.Run(new chart(xVals.ToArray(), yVals.ToArray()));
         }
 
-        public bool checkIfÜberschneidung(Anfrage afr, List<Anfrage> verwendet) {
-            for (int i = 0; i < verwendet.Count; i++) {
-                if (verwendet[i].überschneidung(afr) > 0 && afr.id != verwendet[i].id) {
+        /// <summary>
+        /// prints infos (sumOverlap.Anzahl, energies)
+        /// </summary>
+        /// <param name="anfragenLocal"></param>
+        public void printEnding((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLocal) {
+            List<Anfrage> mergedAnfragen = anfragenLocal.verwendet;
+            mergedAnfragen.AddRange(anfragenLocal.abgelehnt);
+            Console.WriteLine("beste mögliche energie: " + sumRent(mergedAnfragen));
+            Console.WriteLine(sumOverlap(anfragenLocal.verwendet).anzahl + " überschneidungen");
+            Console.WriteLine("bei einer Energie von " + sumRent(anfragenLocal.verwendet) + "; einer effektiven energie von " + energyChart(anfragenLocal.verwendet)); ;
+        }
+
+        #endregion
+
+        #region specialFunctions
+
+        /// <summary>
+        /// prüft, ob die gegebene Anfrage eine andere in der Liste überschneidet
+        /// </summary>
+        /// <param name="afr">zu prüfende Anfrage</param>
+        /// <param name="anfragenLocal">Liste mit allen Anfragen, mit denen geprüft werden soll</param>
+        /// <returns>true: Überschneidung; false: keine Überschneidung</returns>
+        public bool checkIfOverlap3(Anfrage afr, List<Anfrage> anfragenLocal) {
+            for (int i = 0; i < anfragenLocal.Count; i++) {
+                if (anfragenLocal[i].overlap(afr) > 0 && afr.id != anfragenLocal[i].id) {
                     return true;
                 }
             }
             return false;
         }
 
-        public (int anzahl, int summe) sumAllÜberschneidungen(List<Anfrage> verwendet) {
-            int summe = 0; int anzahl = 0;
-            foreach (Anfrage i in verwendet) {
-                foreach (Anfrage j in verwendet) {
-                    if (i.id != j.id) {
-                        int überschneidung = i.überschneidung(j);
-                        summe += überschneidung;
-                        anzahl += (überschneidung > 0 ? 1 : 0);
+        
+        /// <summary>
+        /// findet alle möglichen Positionen für eine gegebene Anfrage, an denen keine Überschneidung auftritt
+        /// </summary>
+        /// <param name="afr">Anfrage</param>
+        /// <param name="anfragenLocal">liste mit allen Anfragen deren Überschneidung berücksichtigt werden sollen</param>
+        /// <returns>Liste mit allen Positionen in der Straße bei denen für die Anfrage keine Überschneidung auftritt</returns>
+        public List<int> findFreePositions4(Anfrage afr, List<Anfrage> anfragenLocal) {
+            bool[] verticalPositions = new bool[streetLength];
+            for (int e = 0; e < verticalPositions.Length; e++) { verticalPositions[e] = true; }
+            for (int i = 0; i < anfragenLocal.Count; i++) {
+                if (anfragenLocal[i].overlap(new Anfrage(-1, afr.mietbeginn, afr.mietende, streetLength, 0)) > 0) { //wenn aktuell betrachtete Anfrage sich mit betrachtetem Querstreifen überschneidet
+                    for (int j = anfragenLocal[i].position; j < anfragenLocal[i].position + anfragenLocal[i].länge; j++) { //gehe Bereich ab, in dem sich betrachtete Anfrage befindet und setze alle spotsvertikal Einträge an dieser Stelle auf false
+                        verticalPositions[j] = false;
                     }
                 }
             }
-            return (anzahl/2, summe/2);
-        }
-
-        public List<int> getFreePositions(Anfrage afr, List<Anfrage> verwendet) {
-            bool[] spotsVertikal = new bool[streetLength];
-            for(int e=0;e<spotsVertikal.Length;e++) { spotsVertikal[e]=true; }
-            for (int i = 0; i < verwendet.Count; i++) {
-                if (verwendet[i].überschneidung(new Anfrage(-1, afr.mietbeginn, afr.mietende, streetLength, 0)) > 0) { //wenn aktuell betrachtete Anfrage sich mit betrachtetem Querstreifen überschneidet
-                    for (int j = verwendet[i].position; j < verwendet[i].position + verwendet[i].länge; j++) { //gehe Bereich ab, in dem sich betrachtete Anfrage befindet und setze alle spotsvertikal Einträge an dieser Stelle auf false
-                        spotsVertikal[j] = false;
-                    }
-                }
-            }
-            List<int> spots = new List<int>();
+            List<int> positions = new List<int>();
             for (int i = 0; i < streetLength - afr.länge; i++) {
-                bool spotHorizontal = true;
+                bool horizontalPosition = true;
                 for (int j = 0; j < afr.länge; j++) {
-                    if (spotsVertikal[i + j] == false) {
-                        spotHorizontal = false;
+                    if (verticalPositions[i + j] == false) {
+                        horizontalPosition = false;
                         i += j; // wenn an Stelle i+j false ist, kann man die Stellen zwischen i und i+j überspringen, da auf jeden Fall keine ganze afr.länge mher reinpasst
                         break;
                     }
                 }
-                if (spotHorizontal) {
-                    spots.Add(i);
+                if (horizontalPosition) {
+                    positions.Add(i);
                 }
             }
-            return spots;
+            return positions;
         }
 
-        int findNearestVal(int target, List<int> list) {
-            int erg;
-            if (target >= list[list.Count - 1]) { erg = list.Count - 1; }
-            else if (target <= list[0]) { erg = 0; }
+        /// <summary>
+        /// finds closest value to targetvalue in int list
+        /// </summary>
+        /// <param name="target">value to whom the nearest should be found</param>
+        /// <param name="list"></param>
+        /// <returns>integer with index of closest value in list</returns>
+        int findClosestValue4(int target, List<int> list) {
+            int index;
+            if (target >= list[list.Count - 1]) { index = list.Count - 1; }
+            else if (target <= list[0]) { index = 0; }
             else {
-                erg = list.BinarySearch(target);
-                if (erg <= 0) {
-                    erg = ~erg;
-                    erg = (list[erg] - target < target - list[erg - 1]) ? erg : erg - 1;
+                index = list.BinarySearch(target);
+                if (index <= 0) {
+                    index = ~index;
+                    index = (list[index] - target < target - list[index - 1]) ? index : index - 1;
                 }
             }
-            return erg;
+            return index;
         }
 
-        public static int compareByCost(Anfrage x, Anfrage y) {
-            int costX = x.mietdauer * x.länge;
-            int costY = y.mietdauer * y.länge;
-            if (costX > costY) { return -1; }
-            else if (costY < costY) { return 1; }
+        /// <summary>
+        /// compares two Anfragen by rent; x>y -> -1  x<y ->1
+        /// </summary>
+        /// <param name="x">first Anfrage to compare</param>
+        /// <param name="y">second Anfrage to compare</param>
+        /// <returns></returns>
+        public static int compareByRent4(Anfrage x, Anfrage y) {
+            int rentX = x.mietdauer * x.länge;
+            int rentY = y.mietdauer * y.länge;
+            if (rentX > rentY) { return -1; }
+            else if (rentY < rentY) { return 1; }
             return 0;
         }
+        
+        #endregion
     }
 }
 

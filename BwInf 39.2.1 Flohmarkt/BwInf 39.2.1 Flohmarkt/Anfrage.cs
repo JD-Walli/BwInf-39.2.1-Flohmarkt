@@ -22,7 +22,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             this.position = position;
         }
 
-        public int überschneidung(Anfrage afr2) {
+        public int overlap(Anfrage afr2) {
             int xOverlap = Math.Min(position + länge, afr2.position + afr2.länge)-Math.Max(position, afr2.position);
             int yOverlap = Math.Min(mietende, afr2.mietende)-Math.Max(mietbeginn, afr2.mietbeginn);
             if (xOverlap > 0 && yOverlap > 0) {

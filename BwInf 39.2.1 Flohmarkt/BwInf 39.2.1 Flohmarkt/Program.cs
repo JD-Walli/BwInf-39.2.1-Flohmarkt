@@ -7,12 +7,10 @@ using System.Threading.Tasks;
 namespace BwInf_39._2._1_Flohmarkt {
     class Program {
         static void Main(string[] args) {
-            simulatedAnnealing simAnn = new simulatedAnnealing(readData(2), 1000, 10, 13,70000,0.99995);
-            simAnn.setRandomPos4();
-            simAnn.simulate1();
-            Console.WriteLine("bestenergy: " + simAnn.bestEnergy());
+            simulatedAnnealing simAnn = new simulatedAnnealing(readData(2), 1000, 10, 25,70000,0.99995);
+            simAnn.setRandomPositions2(20);
+            simAnn.simulate();
             Console.WriteLine(simAnn.anfragen.verwendet.Count);
-            simAnn.printFinish(simAnn.anfragen.verwendet);
             Console.ReadLine();
         }
 
