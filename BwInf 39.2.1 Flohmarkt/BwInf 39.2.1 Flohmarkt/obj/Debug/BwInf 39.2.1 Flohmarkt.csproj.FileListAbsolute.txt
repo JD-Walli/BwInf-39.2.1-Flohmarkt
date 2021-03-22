@@ -1,9 +1,18 @@
-C:\Users\Jakov\Desktop\git\BWInf 20\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\bin\Debug\BwInf 39.2.1 Flohmarkt.exe.config
-C:\Users\Jakov\Desktop\git\BWInf 20\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\bin\Debug\BwInf 39.2.1 Flohmarkt.exe
-C:\Users\Jakov\Desktop\git\BWInf 20\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\bin\Debug\BwInf 39.2.1 Flohmarkt.pdb
-C:\Users\Jakov\Desktop\git\BWInf 20\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\obj\Debug\BwInf 39.2.1 Flohmarkt.csprojAssemblyReference.cache
-C:\Users\Jakov\Desktop\git\BWInf 20\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\obj\Debug\BwInf 39.2.1 Flohmarkt.csproj.CoreCompileInputs.cache
-C:\Users\Jakov\Desktop\git\BWInf 20\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\obj\Debug\BwInf 39.2.1 Flohmarkt.exe
-C:\Users\Jakov\Desktop\git\BWInf 20\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\obj\Debug\BwInf 39.2.1 Flohmarkt.pdb
-C:\Users\Jakov\Desktop\git\BWInf 20\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\obj\Debug\BwInf_39._2._1_Flohmarkt.chart.resources
-C:\Users\Jakov\Desktop\git\BWInf 20\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\BwInf 39.2.1 Flohmarkt\obj\Debug\BwInf 39.2.1 Flohmarkt.csproj.GenerateResource.cache
+C:/Users/Jakov/Desktop/git/BWInf 20/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/bin/Debug/BwInf 39.2.1 Flohmarkt.exe.config
+C:/Users/Jakov/Desktop/git/BWInf 20/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/bin/Debug/BwInf 39.2.1 Flohmarkt.exe
+C:/Users/Jakov/Desktop/git/BWInf 20/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/bin/Debug/BwInf 39.2.1 Flohmarkt.pdb
+C:/Users/Jakov/Desktop/git/BWInf 20/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/obj/Debug/BwInf 39.2.1 Flohmarkt.csprojAssemblyReference.cache
+C:/Users/Jakov/Desktop/git/BWInf 20/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/obj/Debug/BwInf 39.2.1 Flohmarkt.csproj.CoreCompileInputs.cache
+C:/Users/Jakov/Desktop/git/BWInf 20/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/obj/Debug/BwInf 39.2.1 Flohmarkt.exe
+C:/Users/Jakov/Desktop/git/BWInf 20/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/obj/Debug/BwInf 39.2.1 Flohmarkt.pdb
+C:/Users/Jakov/Desktop/git/BWInf 20/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/obj/Debug/BwInf_39._2._1_Flohmarkt.chart.resources
+C:/Users/Jakov/Desktop/git/BWInf 20/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/obj/Debug/BwInf 39.2.1 Flohmarkt.csproj.GenerateResource.cache
+/Users/jakovdavid/Documents/GitHub/BwInf 21/BwInf-39.2.1-Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/bin/Debug/BwInf 39.2.1 Flohmarkt.exe.config
+/Users/jakovdavid/Documents/GitHub/BwInf 21/BwInf-39.2.1-Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/bin/Debug/BwInf 39.2.1 Flohmarkt.exe
+/Users/jakovdavid/Documents/GitHub/BwInf 21/BwInf-39.2.1-Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/bin/Debug/BwInf 39.2.1 Flohmarkt.pdb
+/Users/jakovdavid/Documents/GitHub/BwInf 21/BwInf-39.2.1-Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/obj/Debug/BwInf 39.2.1 Flohmarkt.csprojAssemblyReference.cache
+/Users/jakovdavid/Documents/GitHub/BwInf 21/BwInf-39.2.1-Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/obj/Debug/BwInf_39._2._1_Flohmarkt.chart.resources
+/Users/jakovdavid/Documents/GitHub/BwInf 21/BwInf-39.2.1-Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/obj/Debug/BwInf 39.2.1 Flohmarkt.csproj.GenerateResource.cache
+/Users/jakovdavid/Documents/GitHub/BwInf 21/BwInf-39.2.1-Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/obj/Debug/BwInf 39.2.1 Flohmarkt.csproj.CoreCompileInputs.cache
+/Users/jakovdavid/Documents/GitHub/BwInf 21/BwInf-39.2.1-Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/obj/Debug/BwInf 39.2.1 Flohmarkt.exe
+/Users/jakovdavid/Documents/GitHub/BwInf 21/BwInf-39.2.1-Flohmarkt/BwInf 39.2.1 Flohmarkt/BwInf 39.2.1 Flohmarkt/obj/Debug/BwInf 39.2.1 Flohmarkt.pdb
