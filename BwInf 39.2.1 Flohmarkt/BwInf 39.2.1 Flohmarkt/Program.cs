@@ -16,7 +16,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 			Console.ReadLine();
 		}
 
-		static (List<Anfrage> anfragen, int number) readData(int number) {
+		private static (List<Anfrage> anfragen, int number) readData(int number) {
 			string[] lines = System.IO.File.ReadAllLines(System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName + "/flohmarkt " + number + ".txt");
 			List<Anfrage> anfragen = new List<Anfrage>();
 			for (int i = 1; i < lines.Length; i++) {
