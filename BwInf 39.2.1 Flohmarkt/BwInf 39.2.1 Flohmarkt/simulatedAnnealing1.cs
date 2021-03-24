@@ -88,9 +88,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 		/// setzt zufällige Positionen, auch auf abgelehnt Liste; keine Überschneidungen zugelassen; fängt bei sperrigen Anfragen an
 		/// </summary>
 		public void setRandomPositions4() {
-			(List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLoc; anfragenLoc.verwendet = new List<Anfrage>(); anfragenLoc.abgelehnt = new List<Anfrage>();
-			foreach (Anfrage afr in anfragen.verwendet) { anfragenLoc.verwendet.Add(afr.clone()); }
-			foreach (Anfrage afr in anfragen.abgelehnt) { anfragenLoc.abgelehnt.Add(afr.clone()); }
+			(List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLoc = cloneLists(anfragen);
 			anfragen.verwendet.Clear(); anfragen.abgelehnt.Clear();
 
 			//ungetestete bessere var: bool[,] unoccupiedFields = new bool[streetLength, duration];
@@ -119,9 +117,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 		/// setzt Positionen, auch auf abgelehnt Liste; keine Überschneidungen zugelassen; fängt bei sperrigen Anfragen an; immer an Position, die am wenigsten freie Positionen einschließt
 		/// </summary>
 		public void setPositions5() {
-			(List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLoc; anfragenLoc.verwendet = new List<Anfrage>(); anfragenLoc.abgelehnt = new List<Anfrage>();
-			foreach (Anfrage afr in anfragen.verwendet) { anfragenLoc.verwendet.Add(afr.clone()); }
-			foreach (Anfrage afr in anfragen.abgelehnt) { anfragenLoc.abgelehnt.Add(afr.clone()); }
+			(List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLoc = cloneLists(anfragen);
 			anfragen.verwendet.Clear(); anfragen.abgelehnt.Clear();
 
 			bool[,] unoccupiedFields = new bool[streetLength, duration];
@@ -148,36 +144,31 @@ namespace BwInf_39._2._1_Flohmarkt {
 
 		public void simulate() {
 			double temp = startTemperature;
-			int currentEnergy = energy(anfragen.verwendet, startTemperature);//variabel
+			//int currentEnergy = energy(anfragen.verwendet, startTemperature);//variabel
+			int currentEnergy = energy2(anfragen.verwendet);//variabel
 			List<int> energies = new List<int>();
 			(List<Anfrage> verwendet, List<Anfrage> abgelehnt) besteVerteilung; besteVerteilung.verwendet = new List<Anfrage>(); besteVerteilung.abgelehnt = new List<Anfrage>();
 			(List<Anfrage> verwendet, List<Anfrage> abgelehnt) currentAnfragen; currentAnfragen.verwendet = new List<Anfrage>(); currentAnfragen.abgelehnt = new List<Anfrage>();
 			(List<Anfrage> verwendet, List<Anfrage> abgelehnt) newAnfragen; newAnfragen.verwendet = new List<Anfrage>(); newAnfragen.abgelehnt = new List<Anfrage>();
-			foreach (Anfrage afr in anfragen.verwendet) { newAnfragen.verwendet.Add(afr.clone()); currentAnfragen.verwendet.Add(afr.clone()); }
-			foreach (Anfrage afr in anfragen.abgelehnt) { newAnfragen.abgelehnt.Add(afr.clone()); currentAnfragen.abgelehnt.Add(afr.clone()); }
+			newAnfragen = cloneLists(anfragen); currentAnfragen = cloneLists(anfragen);
 			int bestEnergy = energyChart(currentAnfragen.verwendet);
 			besteVerteilung = currentAnfragen;
 
 			for (int i = 0; i < durchläufe; i++) {
-				newAnfragen = move4(newAnfragen, temp); //variabel
-				int newEnergy = energy(newAnfragen.verwendet, temp);//variabel
+				newAnfragen = move2(newAnfragen, temp); //variabel
+														//int newEnergy = energy(newAnfragen.verwendet, temp); //variabel
+				int newEnergy = energy2(newAnfragen.verwendet);//variabel
 
 				if (newEnergy <= currentEnergy || rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)) {//|| rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)
 					currentEnergy = newEnergy;
 					Console.WriteLine(i + " : " + currentEnergy + " \t" + newAnfragen.verwendet.Count + " " + newAnfragen.abgelehnt.Count + "  " + sumOverlap(newAnfragen.verwendet).anzahl + " Üs");
-					currentAnfragen.verwendet.Clear(); currentAnfragen.abgelehnt.Clear();
-					foreach (Anfrage afr in newAnfragen.verwendet) { currentAnfragen.verwendet.Add(afr.clone()); }
-					foreach (Anfrage afr in newAnfragen.abgelehnt) { currentAnfragen.abgelehnt.Add(afr.clone()); }
+					currentAnfragen = cloneLists(newAnfragen);
 					if (sumOverlap(currentAnfragen.verwendet).anzahl == 0 && energyChart(currentAnfragen.verwendet) < bestEnergy) {
 						bestEnergy = energyChart(currentAnfragen.verwendet);
-						besteVerteilung.verwendet.Clear(); besteVerteilung.abgelehnt.Clear();
-						foreach (Anfrage afr in newAnfragen.verwendet) { besteVerteilung.verwendet.Add(afr.clone()); }
-						foreach (Anfrage afr in newAnfragen.abgelehnt) { besteVerteilung.abgelehnt.Add(afr.clone()); }
+						besteVerteilung = cloneLists(newAnfragen);
 					}
 				} else {
-					newAnfragen.verwendet.Clear(); newAnfragen.abgelehnt.Clear();
-					foreach (Anfrage afr in currentAnfragen.verwendet) { newAnfragen.verwendet.Add(afr.clone()); }
-					foreach (Anfrage afr in currentAnfragen.abgelehnt) { newAnfragen.abgelehnt.Add(afr.clone()); }
+					newAnfragen = cloneLists(currentAnfragen);
 				}
 				energies.Add(energyChart(currentAnfragen.verwendet));
 				temp *= verkleinerungsrate;//200000, 130, 0.999972 //70000,74,0.99997 //70000,23,0.99994
@@ -187,9 +178,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 			//plotEnergy(energies); //nur unter Windows
 			Console.WriteLine("beste vorgekommene energie: {0} mit {1} abgelehnten und {2} Üs", bestEnergy, besteVerteilung.abgelehnt.Count, sumOverlap(besteVerteilung.verwendet).anzahl);
 
-			anfragen.verwendet.Clear(); anfragen.abgelehnt.Clear();
-			foreach (Anfrage afr in currentAnfragen.verwendet) { anfragen.verwendet.Add(afr.clone()); }
-			foreach (Anfrage afr in currentAnfragen.abgelehnt) { anfragen.abgelehnt.Add(afr.clone()); }
+			anfragen = cloneLists(currentAnfragen);
 
 			printEnding(currentAnfragen);
 			saveResult(currentAnfragen);
@@ -215,7 +204,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 				anfragen.verwendet = move1(anfragen.verwendet, temp);
 			} else {// swappe
 				int rnd2 = rnd.Next(100);
-				if (rnd2 < 50 || anfragen.abgelehnt.Count == 0) {//reinswap
+				if ((rnd2 < 50 || anfragen.abgelehnt.Count == 0) && anfragen.verwendet.Count > 0) {//reinswap
 					int index = rnd.Next(anfragen.verwendet.Count);
 					anfragen.abgelehnt.Add(anfragen.verwendet[index]);
 					anfragen.verwendet.RemoveAt(index);
@@ -232,7 +221,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 		//verschieben und swappen ohne Überschneidungen (1000 mal probieren ob Platz gefunden wird)
 		private (List<Anfrage> verwendet, List<Anfrage> abgelehnt) move3((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp) {
 			int rnd1 = rnd.Next(100);
-			if (rnd1 < 60) { //verschiebe
+			if (rnd1 < 60 && anfragen.verwendet.Count > 0) { //verschiebe
 				int index = rnd.Next(anfragen.verwendet.Count());
 				for (int i = 0; i < 1000; i++) {//versuche 100 mal einen move zu finden, bei dem keine überschneidung rauskommt
 					int x = rnd.Next(streetLength - anfragen.verwendet[index].länge + 1) - anfragen.verwendet[index].position;
@@ -269,7 +258,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 		//verschieben und swappen ohne Überschneidungen (nur an Position wo sicher keine Überschneidungen auftreten)
 		private (List<Anfrage> verwendet, List<Anfrage> abgelehnt) move4((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp) {
 			int rnd1 = rnd.Next(100);
-			if (rnd1 < 40 && anfragen.verwendet.Count > 0) { //verschiebe
+			if (rnd1 < 50 && anfragen.verwendet.Count > 0) { //verschiebe //variabel
 				int index = rnd.Next(anfragen.verwendet.Count());
 				int x = rnd.Next(streetLength - anfragen.verwendet[index].länge + 1) - anfragen.verwendet[index].position;
 				int move = x;
@@ -430,6 +419,18 @@ namespace BwInf_39._2._1_Flohmarkt {
 		#endregion
 
 		#region specialFunctions
+
+		/// <summary>
+		/// gibt ein geklontes (Wert-kopiertes) anfragen Tuple (verwendet, abgelehnt) zurück.
+		/// </summary>
+		/// <param name="anfragenLocal">zu klonendes Tuple</param>
+		/// <returns></returns>
+		public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) cloneLists((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLocal) {
+			(List<Anfrage> verwendet, List<Anfrage> abgelehnt) returnAnfragen; returnAnfragen.verwendet = new List<Anfrage>(); returnAnfragen.abgelehnt = new List<Anfrage>();
+			foreach (Anfrage afr in anfragenLocal.verwendet) { returnAnfragen.verwendet.Add(afr.clone()); }
+			foreach (Anfrage afr in anfragenLocal.abgelehnt) { returnAnfragen.abgelehnt.Add(afr.clone()); }
+			return returnAnfragen;
+		}
 
 		/// <summary>
 		/// prüft, ob die gegebene Anfrage eine andere in der Liste überschneidet

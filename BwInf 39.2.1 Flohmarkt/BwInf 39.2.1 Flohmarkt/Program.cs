@@ -7,8 +7,10 @@ using System.Threading.Tasks;
 namespace BwInf_39._2._1_Flohmarkt {
 	class Program {
 		static void Main(string[] args) {
-			simulatedAnnealing simAnn = new simulatedAnnealing(readData(5), 1000, 10, 8, 25, 70, 0.99995);
-			simAnn.setRandomPositions5();
+			simulatedAnnealing simAnn = new simulatedAnnealing(readData(2), 1000, 10, 8, 25, 70000, 0.99995);
+			simAnn.setRandomPositions4();
+			//simAnn.setRandomPositions2(100);
+			//simAnn.setPositions5();
 			simAnn.simulate();
 			Console.WriteLine(simAnn.anfragen.verwendet.Count);
 
