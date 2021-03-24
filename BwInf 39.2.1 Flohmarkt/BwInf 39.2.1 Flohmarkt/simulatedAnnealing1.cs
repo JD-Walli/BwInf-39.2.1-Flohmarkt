@@ -336,7 +336,22 @@ namespace BwInf_39._2._1_Flohmarkt {
 		/// <returns>-rent + n*overlap</returns>
 		private int energy(List<Anfrage> anfragenLocal, double temperatur) {
 			int energy = sumRent(anfragenLocal);
-			energy += sumOverlap(anfragenLocal).summe * (int)(((temperatur / startTemperature) * 50) + 1);// * (int)(((temperatur / startTemperature) * 20) + 1); //Überschneidung wird "wichtiger", je größer die Temperatur wird
+			energy += sumOverlap(anfragenLocal).summe * (int)(((temperatur / startTemperature) * 20) + 1);// * (int)(((temperatur / startTemperature) * 20) + 1); //Überschneidung wird "wichtiger", je größer die Temperatur wird
+			return energy;
+		}
+
+		/// <summary>
+		/// -rent + (alle Anfragen die sich Überschneiden)
+		/// </summary>
+		/// <param name="anfragenLocal"></param>
+		/// <returns></returns>
+		private int energy2(List<Anfrage> anfragenLocal) {
+			int energy = 0;
+			for (int i = 0; i < anfragenLocal.Count; i++) {
+				if (checkIfOverlap3(anfragenLocal[i], anfragenLocal) == false) {
+					energy -= anfragenLocal[i].länge * anfragenLocal[i].mietdauer;
+				}
+			}
 			return energy;
 		}
 
