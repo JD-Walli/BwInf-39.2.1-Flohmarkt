@@ -401,7 +401,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 		/// </summary>
 		/// <param name="anfragen"></param>
 		public void saveResult((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen) {
-			string filename = number + " savedResult " + DateTime.Now.ToString("yyMMdd HH:mm:ss") + ".csv";
+			string filename = number + " savedResult " + DateTime.Now.ToString("yyMMdd HHmmss") + ".csv";
 			StreamWriter txt = new StreamWriter(filename);
 			txt.WriteLine("Mietbegin Mietende Länge ID position");
 			foreach (var afr in anfragen.verwendet) {
@@ -418,7 +418,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 		/// </summary>
 		/// <param name="energies"></param>
 		public void saveMeta(List<int> energies) {
-			string filename = number + " savedMeta " + DateTime.Now.ToString("yyMMdd HH:mm:ss") + ".csv";
+			string filename = number + " savedMeta " + DateTime.Now.ToString("yyMMdd HHmmss") + ".csv";
 			StreamWriter txt = new StreamWriter(filename);
 			txt.WriteLine("Durchläufe: " + durchläufe);
 			txt.WriteLine("Starttemperatur: " + startTemperature);
