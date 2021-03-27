@@ -9,11 +9,11 @@ namespace BwInf_39._2._1_Flohmarkt {
 		static void Main(string[] args) {
 			simulatedAnnealing simAnn = new simulatedAnnealing(readData(2), 1000, 10, 8, 25, 70000, 0.99995);
 			simAnn.setRandomPositions4();
-			//simAnn.setRandomPositions2(100);
-			//simAnn.setPositions5();
-			simAnn.simulate();
-			Console.WriteLine(simAnn.anfragen.verwendet.Count);
-
+            //simAnn.setRandomPositions2(100);
+            //simAnn.setPositions5();
+            simulatedAnnealing.EnDel energyDelegate = simAnn.energy2;
+            simulatedAnnealing.moveDel moveDelegate = simAnn.move2;
+			simAnn.simulate(energyDelegate,moveDelegate);
 
 			Console.ReadLine();
 		}
@@ -28,5 +28,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 			Console.WriteLine(anfragen.Count + "  " + lines.Length);
 			return (anfragen, number);
 		}
-	}
+
+
+    }
 }
