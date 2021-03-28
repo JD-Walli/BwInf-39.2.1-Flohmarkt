@@ -10,7 +10,8 @@ namespace BwInf_39._2._1_Flohmarkt {
 	class simulatedAnnealing {
 		int startTemperature;
 		public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen;
-		int streetLength;
+        public List<string> metaToSave = new List<string>();
+        int streetLength;
 		int number;
 		int duration;
 		int durchläufe;
@@ -62,18 +63,22 @@ namespace BwInf_39._2._1_Flohmarkt {
 		}
         
 		/// <summary>
-		/// setzt Positionen, auch auf abgelehnt Liste; keine Überschneidungen zugelassen; nach Wunsch: - fängt bei sperrigen Anfragen an  - immer an Position, die am wenigsten freie Positionen einschließt
+		/// setzt Positionen, auch auf abgelehnt Liste; keine Überschneidungen zugelassen; nach Wunsch: - fängt bei sperrigen Anfragen an (nach Wunsch gilt A oder Dauer als sperrig)  - immer an Position, die am wenigsten freie Positionen einschließt
 		/// </summary>
-        /// <param name="state">Konfiguration; enthält "sorted": Liste wird vor positionierung sortiert; enthält "optimal": Anfrage wird an optimaler Position positioniert, ansonsten an zufälliger Position</param>
+        /// <param name="state">Konfiguration; enthält "sorted": Liste wird vor positionierung sortiert; enthält "compare5": compareByRent5 wird als comparer verwendet (standard ist compareByRent4); enthält "optimal": Anfrage wird an optimaler Position positioniert, ansonsten an zufälliger Position</param>
 		public void setPositions5(string state) {
             bool sorted = state.Contains("sortiert") || state.Contains("sorted");
             bool optimalPosition= state.Contains("optimal") || state.Contains("optimal");
+            bool comparer5 = state.Contains("compare5") || state.Contains("comparer5");
             (List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLoc = cloneLists(anfragen);
 			anfragen.verwendet.Clear(); anfragen.abgelehnt.Clear();
 
 			bool[,] unoccupiedFields = new bool[streetLength, duration];
 			for (int i = 0; i < unoccupiedFields.GetLength(0); i++) { for (int j = 0; j < unoccupiedFields.GetLength(1); j++) { unoccupiedFields[i, j] = true; } }
-            if (sorted) {anfragenLoc.verwendet.Sort(compareByRent4);}
+            if (sorted) {
+                if (comparer5) { anfragenLoc.verwendet.Sort(compareByRent5); }
+                else { anfragenLoc.verwendet.Sort(compareByRent4); }
+            }
             foreach (Anfrage afr in anfragenLoc.verwendet) {
 				List<int> freePositions = findFreePositions5(unoccupiedFields, afr);
 				if (freePositions.Count > 0) {
@@ -131,8 +136,8 @@ namespace BwInf_39._2._1_Flohmarkt {
 			anfragen = cloneLists(currentAnfragen);
 
 			printEnding(currentAnfragen);
-			saveResult(currentAnfragen);
-			saveMeta(energies);
+			saveResult(besteVerteilung);
+			saveMeta(energies, besteVerteilung);
 		}
 
         #region moves
@@ -153,7 +158,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// </summary>
         public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) move2((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp) {
 			int rnd1 = rnd.Next(100);
-			if (rnd1 < 60) { //verschiebe
+			if (rnd1 < 50 && anfragen.verwendet.Count > 0) { //verschiebe
 				anfragen = move1(anfragen, temp);
 			} else {// swappe
 				int rnd2 = rnd.Next(100);
@@ -335,13 +340,19 @@ namespace BwInf_39._2._1_Flohmarkt {
 		/// speichert meta daten (durchläufe, starttemperatur, ... und die energien vom simAnn im Zeitverlauf) 
 		/// </summary>
 		/// <param name="energies"></param>
-		public void saveMeta(List<int> energies) {
+		public void saveMeta(List<int> energies, (List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLocal) {
 			string filename = number + " savedMeta " + DateTime.Now.ToString("yyMMdd HHmmss") + ".csv";
 			StreamWriter txt = new StreamWriter(filename);
 			txt.WriteLine("Durchläufe: " + durchläufe);
 			txt.WriteLine("Starttemperatur: " + startTemperature);
-			txt.WriteLine("verkleinerungsrate: " + verkleinerungsrate);
-			txt.WriteLine("/n Energie im Zeitverlauf");
+            txt.WriteLine("verkleinerungsrate: " + verkleinerungsrate);
+            txt.WriteLine("Anzahl Anfragen: " + (anfragenLocal.verwendet.Count+anfragenLocal.abgelehnt.Count));
+            txt.WriteLine("Anfragen abgelehnt: " + anfragenLocal.abgelehnt.Count);
+            txt.WriteLine("Anzahl Überschneidungen: " + sumOverlap(anfragenLocal.verwendet).anzahl);
+            foreach(string s in metaToSave) {
+                txt.WriteLine(s);
+            }
+            txt.WriteLine("\n Energie im Zeitverlauf");
 			foreach (var energ in energies) {
 				txt.WriteLine(energ);
 			}
@@ -465,19 +476,26 @@ namespace BwInf_39._2._1_Flohmarkt {
 		private static int compareByRent4(Anfrage x, Anfrage y) {
 			int rentX = x.mietdauer * x.länge;
 			int rentY = y.mietdauer * y.länge;
-			if (rentX > rentY) { return -1; } else if (rentX < rentY) { return 1; }
+			if (rentX > rentY) { return -1; } else if (rentX < rentY) { return +1; }
 			return 0;
 		}
 
+        private static int compareByRent5(Anfrage x, Anfrage y) {
+            int rentX = x.mietdauer * x.länge;
+            int rentY = y.mietdauer * y.länge;
+            if (x.mietdauer > y.mietdauer) { return -1; } else if (x.mietdauer < y.mietdauer) { return +1; } else if (x.länge > y.länge) { return -1; } else if (x.länge < y.länge) { return +1; }
+            return 0;
+        }
 
-		/// <summary>
-		/// berechnet an eine Anfrage grenzende Fläche auf der Zeit-Ort-Tafel bis zur nächsten Anfrage
-		/// </summary>
-		/// <param name="unoccupiedFields">bool array mit unbelegten Feldern</param>
-		/// <param name="afr"></param>
-		/// <param name="position"></param>
-		/// <returns></returns>
-		private (int links, int rechts, int oben, int unten) getSpaceAround5(bool[,] unoccupiedFields, Anfrage afr, int position) {
+
+        /// <summary>
+        /// berechnet an eine Anfrage grenzende Fläche auf der Zeit-Ort-Tafel bis zur nächsten Anfrage
+        /// </summary>
+        /// <param name="unoccupiedFields">bool array mit unbelegten Feldern</param>
+        /// <param name="afr"></param>
+        /// <param name="position"></param>
+        /// <returns></returns>
+        private (int links, int rechts, int oben, int unten) getSpaceAround5(bool[,] unoccupiedFields, Anfrage afr, int position) {
 			int links = 0;
 			for (int i = afr.mietbeginn - startzeit; i < afr.mietende - startzeit; i++) {
 				for (int j = position - 1; j >= 0; j--) {
