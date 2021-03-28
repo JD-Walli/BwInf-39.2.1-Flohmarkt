@@ -1,0 +1,84 @@
+Anzahl Durchläufe: 70
+Starttemperatur: 25
+Verkleinerungsrate: 0,99995
+
+Anzahl Anfragen: 490
+   davon abgelehnt: 0
+Anzahl Überschneidungen: 0
+beste Energie: -8028
+
+Energieberechnung: energy
+Moves: move4
+Positioning: setPositions5(sorted by compareByRent4; optimalPosition
+
+ Energie im Zeitverlauf
+-8018
+-8018
+-8028
+-8028
+-8028
+-8028
+-8028
+-8028
+-8028
+-8028
+-8028
+-8012
+-8012
+-8002
+-8002
+-8012
+-8028
+-8028
+-8028
+-8028
+-8028
+-8028
+-8028
+-8028
+-8028
+-8028
+-8028
+-8018
+-8018
+-8018
+-8018
+-8018
+-8018
+-8018
+-8015
+-8015
+-8015
+-8015
+-8010
+-8010
+-8020
+-8020
+-8023
+-8019
+-8009
+-8009
+-8009
+-8009
+-8014
+-8014
+-8024
+-8024
+-8024
+-8028
+-7998
+-7998
+-7998
+-8028
+-8028
+-8028
+-8008
+-8008
+-8008
+-7984
+-7984
+-7977
+-8001
+-8001
+-8021
+-8021

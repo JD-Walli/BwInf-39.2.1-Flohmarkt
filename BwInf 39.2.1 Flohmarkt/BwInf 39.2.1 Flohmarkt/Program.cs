@@ -7,17 +7,15 @@ using System.Threading.Tasks;
 namespace BwInf_39._2._1_Flohmarkt {
 	class Program {
 		static void Main(string[] args) {
-			simulatedAnnealing simAnn = new simulatedAnnealing(readData(5), 1000, 10, 8, 25, 200000, 0.99995);
-            simAnn.setRandomPositions2(0);
-            //simAnn.setPositions5("sorted optimal compare5");
-            simulatedAnnealing.EnDel energyDelegate = simAnn.energy2;
-            simulatedAnnealing.moveDel moveDelegate = simAnn.move2;
-            simAnn.metaToSave.Add("Positioning: setRandomPositions2(0)");
-            simAnn.metaToSave.Add("energy: energy2");
-            simAnn.metaToSave.Add("move: move2");
-            simAnn.simulate(energyDelegate,moveDelegate);
+            simulatedAnnealing simAnn = new simulatedAnnealing(readData(1), 1000, 10, 8, 25, 70, 0.99995);
+            simAnn.energyType= (simAnn.energy, "energy");
+            simAnn.moveType = (simAnn.move4, "move4");
+            //simAnn.setRandomPositions2(0);
+            simAnn.setPositions5((true, false, false));
+            simAnn.simulate();
+            simAnn.finish();
 
-			Console.ReadLine();
+            Console.ReadLine();
 		}
 
 		private static (List<Anfrage> anfragen, int number) readData(int number) {

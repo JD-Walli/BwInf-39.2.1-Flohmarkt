@@ -8,20 +8,30 @@ using System.Threading.Tasks;
 
 namespace BwInf_39._2._1_Flohmarkt {
 	class simulatedAnnealing {
-		int startTemperature;
-		public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen;
-        public List<string> metaToSave = new List<string>();
+        public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen;
+
         int streetLength;
-		int number;
-		int duration;
-		int durchläufe;
+        int duration;
 		int startzeit;
+
+		int number;
+        string programStartTime;
+        public List<string> metaToSave = new List<string>();
+        public List<string> logToSave = new List<string>();
+
+        int durchläufe;
+        int startTemperature;
 		double verkleinerungsrate;
+        public(EnDel del, string name) energyType;
+        public (moveDel del, string name) moveType;
+
+        public (int bestEnergy, List<int> energies, List<int> overlaps, (List<Anfrage> verwendet, List<Anfrage> abgelehnt) letzteVerteilung, (List<Anfrage> verwendet, List<Anfrage> abgelehnt) besteVerteilung) output;
+
 		Random rnd = new Random();
 
 		#region constructors
 
-		public simulatedAnnealing((List<Anfrage> anfragen, int number) data, int streetLength, int duration, int startzeit, int startTemperature, int durchläufe, double verkleinerungsrate) {
+		public simulatedAnnealing((List<Anfrage> anfragen, int number) data, int streetLength=1000, int duration=10, int startzeit=8, int startTemperature=25, int durchläufe=70000, double verkleinerungsrate=0.99995) {
 			this.anfragen.verwendet = data.anfragen;
 			this.anfragen.abgelehnt = new List<Anfrage>();
 			this.number = data.number;
@@ -31,10 +41,11 @@ namespace BwInf_39._2._1_Flohmarkt {
 			this.startTemperature = startTemperature;
 			this.durchläufe = durchläufe;
 			this.verkleinerungsrate = verkleinerungsrate;
-		}
+            programStartTime = DateTime.Now.ToString("yyMMdd HHmmss") + "";
+        }
 
 		public simulatedAnnealing() { }
-
+        
 		#endregion
 
 		#region setPositions
@@ -44,7 +55,6 @@ namespace BwInf_39._2._1_Flohmarkt {
 		/// </summary>
 		public void setRandomPositions1() {
             setRandomPositions2(0);
-
         }
 
 		/// <summary>
@@ -60,29 +70,27 @@ namespace BwInf_39._2._1_Flohmarkt {
 				anfragen.abgelehnt.Add(anfragen.verwendet[rnd1]);
 				anfragen.verwendet.RemoveAt(rnd1);
 			}
-		}
-        
-		/// <summary>
-		/// setzt Positionen, auch auf abgelehnt Liste; keine Überschneidungen zugelassen; nach Wunsch: - fängt bei sperrigen Anfragen an (nach Wunsch gilt A oder Dauer als sperrig)  - immer an Position, die am wenigsten freie Positionen einschließt
-		/// </summary>
-        /// <param name="state">Konfiguration; enthält "sorted": Liste wird vor positionierung sortiert; enthält "compare5": compareByRent5 wird als comparer verwendet (standard ist compareByRent4); enthält "optimal": Anfrage wird an optimaler Position positioniert, ansonsten an zufälliger Position</param>
-		public void setPositions5(string state) {
-            bool sorted = state.Contains("sortiert") || state.Contains("sorted");
-            bool optimalPosition= state.Contains("optimal") || state.Contains("optimal");
-            bool comparer5 = state.Contains("compare5") || state.Contains("comparer5");
+            metaToSave.Add("Positioning: setRandomPositions2("+anteilAbgelehnt+")");
+        }
+
+        /// <summary>
+        /// setzt Positionen, auch auf abgelehnt Liste; keine Überschneidungen zugelassen; nach Wunsch: - fängt bei sperrigen Anfragen an (nach Wunsch gilt A oder Dauer als sperrig)  - immer an Position, die am wenigsten freie Positionen einschließt
+        /// </summary>
+        /// <param name="state">Konfiguration; ´sorted: Liste wird vor positionierung sortiert; compare5: compareByRent5 wird als comparer verwendet (standard ist compareByRent4); optimal: Anfrage wird an optimaler Position positioniert, ansonsten an zufälliger Position</param>
+        public void setPositions5((bool sorted, bool comparer5, bool optimalPos) state) {
             (List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLoc = cloneLists(anfragen);
 			anfragen.verwendet.Clear(); anfragen.abgelehnt.Clear();
 
 			bool[,] unoccupiedFields = new bool[streetLength, duration];
 			for (int i = 0; i < unoccupiedFields.GetLength(0); i++) { for (int j = 0; j < unoccupiedFields.GetLength(1); j++) { unoccupiedFields[i, j] = true; } }
-            if (sorted) {
-                if (comparer5) { anfragenLoc.verwendet.Sort(compareByRent5); }
+            if (state.sorted) {
+                if (state.comparer5) { anfragenLoc.verwendet.Sort(compareByRent5); }
                 else { anfragenLoc.verwendet.Sort(compareByRent4); }
             }
             foreach (Anfrage afr in anfragenLoc.verwendet) {
 				List<int> freePositions = findFreePositions5(unoccupiedFields, afr);
 				if (freePositions.Count > 0) {
-                    if (optimalPosition) { afr.position = findBestPosition5(unoccupiedFields, afr, freePositions);
+                    if (state.optimalPos) { afr.position = findBestPosition5(unoccupiedFields, afr, freePositions);
                     } else { afr.position = freePositions[rnd.Next(freePositions.Count)]; }
                     anfragen.verwendet.Add(afr);
 					for (int i = afr.mietbeginn - startzeit; i < afr.mietende - startzeit; i++) {
@@ -95,15 +103,18 @@ namespace BwInf_39._2._1_Flohmarkt {
 					anfragen.abgelehnt.Add(afr);
 				}
 			}
-		}
+            output = (energyChart(anfragen.verwendet), new List<int>(), new List<int>(), anfragen, anfragen);
+            metaToSave.Add("Positioning: setPositions5 ("+(state.sorted?"sorted " + (state.comparer5?" by compareByRent5; ":"by compareByRent4; "):"not Sorted; ")+(state.optimalPos?"optimalPosition)":"randomPosition)"));
+        }
 
         #endregion
 
-        public void simulate(EnDel energyDel, moveDel moveDel) {
+        public void simulate() {
 			double temp = startTemperature;
-			int currentEnergy = energyDel(anfragen.verwendet, startTemperature);//variabel
-			List<int> energies = new List<int>();
-			(List<Anfrage> verwendet, List<Anfrage> abgelehnt) besteVerteilung; besteVerteilung.verwendet = new List<Anfrage>(); besteVerteilung.abgelehnt = new List<Anfrage>();
+			int currentEnergy = energyType.del(anfragen.verwendet, startTemperature);//variabel
+            List<int> energies = new List<int>();
+            List<int> overlaps = new List<int>();
+            (List<Anfrage> verwendet, List<Anfrage> abgelehnt) besteVerteilung; besteVerteilung.verwendet = new List<Anfrage>(); besteVerteilung.abgelehnt = new List<Anfrage>();
 			(List<Anfrage> verwendet, List<Anfrage> abgelehnt) currentAnfragen; currentAnfragen.verwendet = new List<Anfrage>(); currentAnfragen.abgelehnt = new List<Anfrage>();
 			(List<Anfrage> verwendet, List<Anfrage> abgelehnt) newAnfragen; newAnfragen.verwendet = new List<Anfrage>(); newAnfragen.abgelehnt = new List<Anfrage>();
 			newAnfragen = cloneLists(anfragen); currentAnfragen = cloneLists(anfragen);
@@ -111,12 +122,14 @@ namespace BwInf_39._2._1_Flohmarkt {
 			besteVerteilung = currentAnfragen;
 
 			for (int i = 0; i < durchläufe; i++) {
-				newAnfragen = moveDel(newAnfragen, temp); //variabel
-				int newEnergy = energyDel(newAnfragen.verwendet, temp);//variabel
-
-				if (newEnergy <= currentEnergy || rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)) {//|| rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)
+				newAnfragen = moveType.del(newAnfragen, temp); //variabel
+				int newEnergy = energyType.del(newAnfragen.verwendet, temp);//variabel
+                logToSave[logToSave.Count-1]+=" "+newEnergy;
+                if (i % 100 == 0) Console.WriteLine(i);
+                if (newEnergy <= currentEnergy || rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)) {//|| rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)
 					currentEnergy = newEnergy;
-					Console.WriteLine(i + " : " + currentEnergy + " \t" + newAnfragen.verwendet.Count + " " + newAnfragen.abgelehnt.Count + "  " + sumOverlap(newAnfragen.verwendet).anzahl + " Üs");
+                    logToSave[logToSave.Count - 1] += " "+ sumOverlap(newAnfragen.verwendet).anzahl; logToSave.Add("");
+                    //Console.WriteLine(i + " : " + currentEnergy + " \t" + newAnfragen.verwendet.Count + " " + newAnfragen.abgelehnt.Count + "  " + sumOverlap(newAnfragen.verwendet).anzahl + " Üs");
 					currentAnfragen = cloneLists(newAnfragen);
 					if (sumOverlap(currentAnfragen.verwendet).anzahl == 0 && energyChart(currentAnfragen.verwendet) < bestEnergy) {
 						bestEnergy = energyChart(currentAnfragen.verwendet);
@@ -126,18 +139,14 @@ namespace BwInf_39._2._1_Flohmarkt {
 					newAnfragen = cloneLists(currentAnfragen);
 				}
 				energies.Add(energyChart(currentAnfragen.verwendet));
+                overlaps.Add(sumOverlap(currentAnfragen.verwendet).anzahl);
 				temp *= verkleinerungsrate;//200000, 130, 0.999972 //70000,74,0.99997 //70000,23,0.99994
 			}
-
+            
 			Console.WriteLine("done");
-			plotEnergy(energies); //nur unter Windows
-			Console.WriteLine("beste vorgekommene energie: {0} mit {1} abgelehnten und {2} Üs", bestEnergy, besteVerteilung.abgelehnt.Count, sumOverlap(besteVerteilung.verwendet).anzahl);
 
+            output = (bestEnergy, energies, overlaps, currentAnfragen, besteVerteilung);
 			anfragen = cloneLists(currentAnfragen);
-
-			printEnding(currentAnfragen);
-			saveResult(besteVerteilung);
-			saveMeta(energies, besteVerteilung);
 		}
 
         #region moves
@@ -160,19 +169,23 @@ namespace BwInf_39._2._1_Flohmarkt {
 			int rnd1 = rnd.Next(100);
 			if (rnd1 < 50 && anfragen.verwendet.Count > 0) { //verschiebe
 				anfragen = move1(anfragen, temp);
+                logToSave.Add("verschiebe");
 			} else {// swappe
 				int rnd2 = rnd.Next(100);
 				if ((rnd2 < 50 || anfragen.abgelehnt.Count == 0) && anfragen.verwendet.Count > 0) {//reinswap
 					int index = rnd.Next(anfragen.verwendet.Count);
 					anfragen.abgelehnt.Add(anfragen.verwendet[index]);
 					anfragen.verwendet.RemoveAt(index);
-				} else {//rausswap
+                    logToSave.Add("swap->abgelehnt");
+                }
+                else {//rausswap
 					int index = rnd.Next(anfragen.abgelehnt.Count);
 					anfragen.abgelehnt[index].position = rnd.Next(streetLength - anfragen.abgelehnt[index].länge + 1);
 					anfragen.verwendet.Add(anfragen.abgelehnt[index]);
 					anfragen.abgelehnt.RemoveAt(index);
-				}
-			}
+                    logToSave.Add("swap->verwendet");
+                }
+            }
 			return (anfragen.verwendet, anfragen.abgelehnt);
 		}
         
@@ -191,21 +204,26 @@ namespace BwInf_39._2._1_Flohmarkt {
 				if (freePositions.Count > 0) {
 					anfragen.verwendet[index].position = freePositions[findClosestValue4(anfragen.verwendet[index].position + move, freePositions)];
 				}
-			} else {// swappe
+                logToSave.Add("verschiebe");
+            }
+            else {// swappe
 				int rnd2 = rnd.Next(100);
 				if ((rnd2 < 50 || anfragen.abgelehnt.Count == 0) && anfragen.verwendet.Count > 0) {//reinswap
 					int index = rnd.Next(anfragen.verwendet.Count);
 					anfragen.abgelehnt.Add(anfragen.verwendet[index]);
 					anfragen.verwendet.RemoveAt(index);
-				} else {//rausswap
+                    logToSave.Add("swap->abgelehnt");
+                }
+                else {//rausswap
 					int index = rnd.Next(anfragen.abgelehnt.Count);
 					List<int> freePositions = findFreePositions4(anfragen.abgelehnt[index], anfragen.verwendet);
 					if (freePositions.Count > 0) {
 						anfragen.abgelehnt[index].position = freePositions[rnd.Next(freePositions.Count)];
 						anfragen.verwendet.Add(anfragen.abgelehnt[index]);
 						anfragen.abgelehnt.RemoveAt(index);
-					}
-				}
+                        logToSave.Add("swap->verwendet");
+                    }
+                }
 			}
 			return (anfragen.verwendet, anfragen.abgelehnt);
 		}
@@ -292,15 +310,48 @@ namespace BwInf_39._2._1_Flohmarkt {
 			return energy;
 		}
 
-		#endregion
+        #endregion
 
-		#region ending
+        #region ending
 
-		/// <summary>
-		/// zeichnet gegebene Energien als Graph; x=zeitpunkt y=energie
-		/// </summary>
-		/// <param name="energies">liste mit Energien</param>
-		private void plotEnergy(List<int> energies) {
+
+        /**<summary>determines further actions (plot energy distribution, save data)</summary>
+         **/
+        public void finish() {
+            Console.WriteLine("\nLETZTE VERTEILUNG");
+            printEnding(output.letzteVerteilung);
+            Console.WriteLine("\nBESTE VERTEILUNG");
+            printEnding(output.besteVerteilung);
+            Console.Write("\nplot energies (y/n): ");
+            if (Console.ReadLine() == "y") {
+                plotEnergy(output.energies);
+            }
+            try {
+                Console.Write("save result, meta, log (y/n y/n y/n): ");
+                string[] input = Console.ReadLine().Split(' ');
+                if (input[0] == "y") {
+                    saveResult(output.besteVerteilung);
+                    Console.WriteLine("saved result");
+                }
+                if (input[1] == "y") {
+                    saveMeta(output.energies, output.overlaps, output.besteVerteilung, output.bestEnergy);
+                    Console.WriteLine("saved meta");
+                }
+                if (input[2] == "y") {
+                    saveLog();
+                    Console.WriteLine("saved log");
+                }
+            }
+            catch (IndexOutOfRangeException) {
+
+            }
+        }
+
+        /// <summary>
+        /// zeichnet gegebene Energien als Graph; x=zeitpunkt y=energie
+        /// </summary>
+        /// <param name="energies">liste mit Energien</param>
+        private void plotEnergy(List<int> energies) {
 			List<float> xVals = new List<float>();
 			List<float> yVals = new List<float>();
 			for (int i = 0; i < energies.Count; i++) {
@@ -310,13 +361,13 @@ namespace BwInf_39._2._1_Flohmarkt {
 		}
 
 		/// <summary>
-		/// prints infos (sumOverlap.Anzahl, energies)
+		/// prints infos (sumOverlap.Anzahl)
 		/// </summary>
 		/// <param name="anfragenLocal"></param>
 		public void printEnding((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLocal) {
-			Console.WriteLine("beste mögliche energie: " + sumAllRent(anfragenLocal));
-			Console.WriteLine(sumOverlap(anfragenLocal.verwendet).anzahl + " überschneidungen");
-			Console.WriteLine("bei einer Energie von " + sumRent(anfragenLocal.verwendet) + "; einer effektiven energie von " + energyChart(anfragenLocal.verwendet)); ;
+			Console.WriteLine(anfragenLocal.verwendet.Count+" verwendet;  "+anfragenLocal.abgelehnt.Count+" abgelehnt");
+			Console.WriteLine(sumOverlap(anfragenLocal.verwendet).anzahl + " Überschneidungen");
+			Console.WriteLine("Mietsumme aller Verwendeten: " + sumRent(anfragenLocal.verwendet) + ";   Mietsumme - Überschneidungen: " + energyChart(anfragenLocal.verwendet)); ;
 		}
 
 		/// <summary>
@@ -324,7 +375,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 		/// </summary>
 		/// <param name="anfragen"></param>
 		public void saveResult((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen) {
-			string filename = number + " savedResult " + DateTime.Now.ToString("yyMMdd HHmmss") + ".csv";
+			string filename = number + " savedResult " + programStartTime + ".csv";
 			StreamWriter txt = new StreamWriter(filename);
 			txt.WriteLine("Mietbegin Mietende Länge ID position");
 			foreach (var afr in anfragen.verwendet) {
@@ -340,36 +391,54 @@ namespace BwInf_39._2._1_Flohmarkt {
 		/// speichert meta daten (durchläufe, starttemperatur, ... und die energien vom simAnn im Zeitverlauf) 
 		/// </summary>
 		/// <param name="energies"></param>
-		public void saveMeta(List<int> energies, (List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLocal) {
-			string filename = number + " savedMeta " + DateTime.Now.ToString("yyMMdd HHmmss") + ".csv";
+		public void saveMeta(List<int> energies, List<int> overlaps, (List<Anfrage> verwendet, List<Anfrage> abgelehnt) besteVerteilung, int bestEnergy) {
+			string filename = number + " savedMeta " + programStartTime + ".csv";
 			StreamWriter txt = new StreamWriter(filename);
-			txt.WriteLine("Durchläufe: " + durchläufe);
-			txt.WriteLine("Starttemperatur: " + startTemperature);
-            txt.WriteLine("verkleinerungsrate: " + verkleinerungsrate);
-            txt.WriteLine("Anzahl Anfragen: " + (anfragenLocal.verwendet.Count+anfragenLocal.abgelehnt.Count));
-            txt.WriteLine("Anfragen abgelehnt: " + anfragenLocal.abgelehnt.Count);
-            txt.WriteLine("Anzahl Überschneidungen: " + sumOverlap(anfragenLocal.verwendet).anzahl);
+            txt.WriteLine("SIMANN META");
+            txt.WriteLine("Anzahl Durchläufe: " + durchläufe);
+            txt.WriteLine("Starttemperatur: " + startTemperature);
+            txt.WriteLine("Verkleinerungsrate: " + verkleinerungsrate);
+            txt.WriteLine();
+            txt.WriteLine("BESTE VERTEILUNG");
+            txt.WriteLine("Anzahl Anfragen: " + (besteVerteilung.verwendet.Count+besteVerteilung.abgelehnt.Count));
+            txt.WriteLine("   davon abgelehnt: " + besteVerteilung.abgelehnt.Count);
+            txt.WriteLine("Anzahl Überschneidungen: " + sumOverlap(besteVerteilung.verwendet).anzahl);
+            txt.WriteLine("Energie: "+bestEnergy);
+            txt.WriteLine();
+            txt.WriteLine("Energieberechnung: " + energyType.name);
+            txt.WriteLine("Moves: " + moveType.name);
             foreach(string s in metaToSave) {
                 txt.WriteLine(s);
             }
-            txt.WriteLine("\n Energie im Zeitverlauf");
-			foreach (var energ in energies) {
-				txt.WriteLine(energ);
+            txt.WriteLine("\n Energie, Überschneidungen im Zeitverlauf");
+			for(int i = 0; i < energies.Count; i++) { 
+				txt.WriteLine(energies[i]+"  "+overlaps[i]);
 			}
 			txt.Close(); txt.Dispose();
-
 		}
 
-		#endregion
-
-		#region specialFunctions
-
-		/// <summary>
-		/// gibt ein geklontes (Wert-kopiertes) anfragen Tuple (verwendet, abgelehnt) zurück.
+        /// <summary>
+		/// speichert log daten
 		/// </summary>
-		/// <param name="anfragenLocal">zu klonendes Tuple</param>
-		/// <returns></returns>
-		public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) cloneLists((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLocal) {
+		public void saveLog() {
+            string filename = number + " savedLog " + programStartTime + ".csv";
+            StreamWriter txt = new StreamWriter(filename);
+            foreach (string s in logToSave) {
+                txt.WriteLine(s);
+            }
+            txt.Close(); txt.Dispose();
+        }
+
+        #endregion
+
+        #region specialFunctions
+
+        /// <summary>
+        /// gibt ein geklontes (Wert-kopiertes) anfragen Tuple (verwendet, abgelehnt) zurück.
+        /// </summary>
+        /// <param name="anfragenLocal">zu klonendes Tuple</param>
+        /// <returns></returns>
+        public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) cloneLists((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLocal) {
 			(List<Anfrage> verwendet, List<Anfrage> abgelehnt) returnAnfragen; returnAnfragen.verwendet = new List<Anfrage>(); returnAnfragen.abgelehnt = new List<Anfrage>();
 			foreach (Anfrage afr in anfragenLocal.verwendet) { returnAnfragen.verwendet.Add(afr.clone()); }
 			foreach (Anfrage afr in anfragenLocal.abgelehnt) { returnAnfragen.abgelehnt.Add(afr.clone()); }
