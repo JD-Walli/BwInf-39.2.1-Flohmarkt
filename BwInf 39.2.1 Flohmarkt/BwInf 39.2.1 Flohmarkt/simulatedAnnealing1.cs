@@ -10,20 +10,20 @@ namespace BwInf_39._2._1_Flohmarkt {
 	class simulatedAnnealing {
         public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen;
 
-        int streetLength;
-        int duration;
-		int startzeit;
+        readonly int streetLength;
+        readonly int duration;
+		readonly int startzeit;
 
-		int number;
-        string programStartTime;
+		readonly int number;
+        readonly string programStartTime;
         public List<string> metaToSave = new List<string>();
         public List<string> logToSave = new List<string>();
 
-        int durchläufe;
-        int startTemperature;
-		double verkleinerungsrate;
+        readonly int durchläufe;
+        readonly int startTemperature;
+        readonly double verkleinerungsrate;
         public(EnDel del, string name) energyType;
-        public (moveDel del, string name) moveType;
+        public(moveDel del, string name) moveType;
 
         public (int bestEnergy, List<int> energies, List<int> overlaps, (List<Anfrage> verwendet, List<Anfrage> abgelehnt) letzteVerteilung, (List<Anfrage> verwendet, List<Anfrage> abgelehnt) besteVerteilung) output;
 
@@ -45,23 +45,25 @@ namespace BwInf_39._2._1_Flohmarkt {
         }
 
 		public simulatedAnnealing() { }
-        
-		#endregion
 
-		#region setPositions
+        #endregion
 
-		/// <summary>
-		/// setzt zufällige Positionen
-		/// </summary>
-		public void setRandomPositions1() {
+        #region setPositions
+
+        //O(n)=anfragen.Count
+        /// <summary>
+        /// setzt zufällige Positionen
+        /// </summary>
+        public void setRandomPositions1() {
             setRandomPositions2(0);
         }
 
-		/// <summary>
-		/// setzt zufällige Positionen, auch auf abgelehnt Liste
-		/// </summary>
-		/// <param name="anteilAbgelehnt">anteil in Prozent der auf die Warteliste gesetzten</param>
-		public void setRandomPositions2(int anteilAbgelehnt) {
+        //O(n)=anfragen.Count+anfragen.Count^2
+        /// <summary>
+        /// setzt zufällige Positionen, auch auf abgelehnt Liste
+        /// </summary>
+        /// <param name="anteilAbgelehnt">anteil in Prozent der auf die Warteliste gesetzten</param>
+        public void setRandomPositions2(int anteilAbgelehnt) {
 			foreach (Anfrage a in anfragen.verwendet) {
 				a.position = rnd.Next(streetLength - a.länge + 1);
 			}
@@ -73,6 +75,10 @@ namespace BwInf_39._2._1_Flohmarkt {
             metaToSave.Add("Positioning: setRandomPositions2("+anteilAbgelehnt+")");
         }
 
+        //sorted&&optimalpos O(n)=cloneList + streetLength*gesamtdauer + anfragen.Count*log(anfragen.Count) + anfragen.Count*(findFreePositions5+findBestPosition5+dauer*länge) = 10^4 + anfragen.Count*log(anfragen.Count) + anfragen.Count*(10^7)
+        //sorted&&optimalpos afr O(n)=cloneList + streetLength*gesamtdauer + anfragen.Count*log(anfragen.Count) + anfragen.Count*(findFreePositions5+findBestPosition5+dauer*länge) = 10^4 + anfragen.Count*log(anfragen.Count) + anfragen.Count*(afr.dauer*10^6+afr.länge*10^4)
+        //sorted O(n)=cloneList + streetLength*gesamtdauer + anfragen.Count*log(anfragen.Count) + anfragen.Count*(findFreePositions5+dauer*länge) =  10^4 + anfragen.Count*log(anfragen.Count) + anfragen.Count*(10^3*afr.länge*afr.dauer)
+        //O(n)=cloneList + streetLength*gesamtdauer + anfragen.Count*(findFreePositions5+dauer*länge) = 10^4 + anfragen.Count*(10^3*afr.länge*afr.dauer)
         /// <summary>
         /// setzt Positionen, auch auf abgelehnt Liste; keine Überschneidungen zugelassen; nach Wunsch: - fängt bei sperrigen Anfragen an (nach Wunsch gilt A oder Dauer als sperrig)  - immer an Position, die am wenigsten freie Positionen einschließt
         /// </summary>
@@ -109,6 +115,8 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         #endregion
 
+        // move4 O(n)=cloneList+energy+durchläufe*(move+energy+cloneList+energyChart) = (afr:) anfragen.Count^2+durchläufe*(10^3*afr.länge+anfragen.Count^2) = (nonafr:) anfragen.Count^2+durchläufe*(10^6+anfragen.Count^2)
+        // move2 O(n)=anfragen.Count^2+durchläufe*(anfragen.Count+2*anfragen.Count^2) = durchläufe*(anfragen.Count^2)
         public void simulate() {
 			double temp = startTemperature;
 			int currentEnergy = energyType.del(anfragen.verwendet, startTemperature);//variabel
@@ -162,6 +170,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 			return (anfragen.verwendet, anfragen.abgelehnt);
 		}
 
+        //O(n)= anfragen.count
         /// <summary>
         ///verschieben (wie move1) und swappen
         /// </summary>
@@ -188,7 +197,8 @@ namespace BwInf_39._2._1_Flohmarkt {
             }
 			return (anfragen.verwendet, anfragen.abgelehnt);
 		}
-        
+
+        //O(n)=findFreePositions4+anfragen.count= 10^6+10^3*anfragen.Count = anfragen.count*afr.länge+10^3*afr.länge
         /// <summary>
         ///verschieben und swappen ohne Überschneidungen (nur an Position wo sicher keine Überschneidungen auftreten)
         /// </summary>
@@ -232,6 +242,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 
 		#region energy
 
+        //O(n)=anfragen.Count
 		/// <summary>
 		/// summiert die Miete, die der Veranstalter mit gegebener Verteilung einnimmt. Überschneidungen nicht berücksichtigt!
 		/// </summary>
@@ -244,19 +255,21 @@ namespace BwInf_39._2._1_Flohmarkt {
 			return energy;
 		}
 
-		private int sumAllRent((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLocal) {
+        //O(n)=anfragen.Count
+        private int sumAllRent((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLocal) {
 			List<Anfrage> mergedAnfragen = new List<Anfrage>();
 			foreach (Anfrage afr in anfragenLocal.verwendet) { mergedAnfragen.Add(afr.clone()); }
 			mergedAnfragen.AddRange(anfragenLocal.abgelehnt);
 			return sumRent(mergedAnfragen);
 		}
 
-		/// <summary>
-		/// summiert die Überschneidung aller Anfragen / zählt die Anzahl der Überschneidungen
-		/// </summary>
-		/// <param name="anfragenLocal">Anfragen die überprüft werden sollen</param>
-		/// <returns>Tuple (anzahl der Überschneidungen, summe der Überschneidungen)</returns>
-		private (int anzahl, int summe) sumOverlap(List<Anfrage> anfragenLocal) {
+        //O(n)=anfragen.Count^2
+        /// <summary>
+        /// summiert die Überschneidung aller Anfragen / zählt die Anzahl der Überschneidungen
+        /// </summary>
+        /// <param name="anfragenLocal">Anfragen die überprüft werden sollen</param>
+        /// <returns>Tuple (anzahl der Überschneidungen, summe der Überschneidungen)</returns>
+        private (int anzahl, int summe) sumOverlap(List<Anfrage> anfragenLocal) {
 			int summe = 0; int anzahl = 0;
 			for (int i = 0; i < anfragenLocal.Count; i++) {
 				for (int j = 0; j < i; j++) {
@@ -270,6 +283,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 			return (anzahl, summe);
 		}
 
+        //O(n)=sumOverlap+sumRent=anfragen.Count^2
         /// <summary>
         /// -rent + n*overlap
         /// </summary>
@@ -281,6 +295,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 			return energy;
 		}
 
+        //O(n)=anfragen.Count*checkifOverlap = anfragen.Count^2
         /// <summary>
         /// - (rent aller Umfragen die sich nicht überschneiden)
         /// </summary>
@@ -296,12 +311,13 @@ namespace BwInf_39._2._1_Flohmarkt {
 			return energy;
 		}
 
-		/// <summary>
-		/// -rent+overlap; berechnet Kosten, die für das Diagramm verwendet werden
-		/// </summary>
-		/// <param name="anfragenLocal"></param>
-		/// <returns></returns>
-		private int energyChart(List<Anfrage> anfragenLocal) {
+        //O(n)=anfragen.Count+sumOverlap = anfragen.Count^2+anfragen.Count
+        /// <summary>
+        /// -rent+overlap; berechnet Kosten, die für das Diagramm verwendet werden
+        /// </summary>
+        /// <param name="anfragenLocal"></param>
+        /// <returns></returns>
+        private int energyChart(List<Anfrage> anfragenLocal) {
 			int energy = 0;
 			for (int i = 0; i < anfragenLocal.Count; i++) {
 				energy -= anfragenLocal[i].länge * anfragenLocal[i].mietdauer;
@@ -433,6 +449,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         #region specialFunctions
 
+        //O(n)=anfragen.Count
         /// <summary>
         /// gibt ein geklontes (Wert-kopiertes) anfragen Tuple (verwendet, abgelehnt) zurück.
         /// </summary>
@@ -445,6 +462,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 			return returnAnfragen;
 		}
 
+        //O(N)=anfragen.Count
 		/// <summary>
 		/// prüft, ob die gegebene Anfrage eine andere in der Liste überschneidet
 		/// </summary>
@@ -460,7 +478,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 			return false;
 		}
 
-
+        //O(n)=10^3 + anfragen.count*afr.länge+10^3*afr.länge = 10^6+10^3*anfragen.Count
 		/// <summary>
 		/// findet alle möglichen Positionen für eine gegebene Anfrage, an denen keine Überschneidung auftritt
 		/// </summary>
@@ -494,6 +512,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 			return positions;
 		}
 
+        //O(n)= 10^3*afr.länge*afr.dauer
 		/// <summary>
 		/// findet alle möglichen Positionen für eine gegebene Anfrage, an denen keine Überschneidung auftritt auf Basis von occupiedFields[] -> skaliert besser
 		/// </summary>
@@ -518,13 +537,14 @@ namespace BwInf_39._2._1_Flohmarkt {
 			return positions;
 		}
 
-		/// <summary>
-		/// finds closest value to targetvalue in int list
-		/// </summary>
-		/// <param name="target">value to whom the nearest should be found</param>
-		/// <param name="list"></param>
-		/// <returns>integer with index of closest value in list</returns>
-		private int findClosestValue4(int target, List<int> list) {
+        //O(n)=log(list.count)
+        /// <summary>
+        /// finds closest value to targetvalue in int list
+        /// </summary>
+        /// <param name="target">value to whom the nearest should be found</param>
+        /// <param name="list"></param>
+        /// <returns>integer with index of closest value in list</returns>
+        private int findClosestValue4(int target, List<int> list) {
 			int index;
 			if (target >= list[list.Count - 1]) { index = list.Count - 1; } else if (target <= list[0]) { index = 0; } else {
 				index = list.BinarySearch(target);
@@ -535,6 +555,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 			}
 			return index;
 		}
+
 
 		/// <summary>
 		/// compares two Anfragen by rent; x>y -> -1  x<y ->1
@@ -557,8 +578,9 @@ namespace BwInf_39._2._1_Flohmarkt {
         }
 
 
+        //O(n)= dauer*(streetlength-länge)+länge*(gesamtdauer-dauer); worst: dauer=10, länge=1 -> ca 10000 bzw 10^4 = dauer*10^3+länge*10
         /// <summary>
-        /// berechnet an eine Anfrage grenzende Fläche auf der Zeit-Ort-Tafel bis zur nächsten Anfrage
+        /// berechnet an eine Anfrage grenzende Fläche auf der Zeit-Ort-Tafel bis zur nächsten Anfrage; 
         /// </summary>
         /// <param name="unoccupiedFields">bool array mit unbelegten Feldern</param>
         /// <param name="afr"></param>
@@ -600,19 +622,20 @@ namespace BwInf_39._2._1_Flohmarkt {
 			return (links, rechts, oben, unten);
 		}
 
-		//ist uU nicht der optimale Algo dafür
-		/// <summary>
-		/// findet beste Position für gegebene Anfrage
-		/// </summary>
-		/// <param name="unoccupiedFields"></param>
-		/// <param name="afr"></param>
-		/// <param name="freePositions"></param>
-		/// <returns></returns>
-		private int findBestPosition5(bool[,] unoccupiedFields, Anfrage afr, List<int> freePositions) {
+        //ist uU nicht der optimale Algo dafür
+        //O(n)=freePositions.Count*getSpaceAround5 = 10^7 = 10^3*(dauer*10^3+länge*10)
+        /// <summary>
+        /// findet beste Position für gegebene Anfrage; 
+        /// </summary>
+        /// <param name="unoccupiedFields"></param>
+        /// <param name="afr"></param>
+        /// <param name="freePositions"></param>
+        /// <returns></returns>
+        private int findBestPosition5(bool[,] unoccupiedFields, Anfrage afr, List<int> freePositions) {
 			(int smallestArea, int position) best = (int.MaxValue, -2);
 			for (int i = 0; i < freePositions.Count; i++) {
-				(int links, int rechts, int oben, int unten) spaceAround = getSpaceAround5(unoccupiedFields, afr, freePositions[i]);
-				int area = Math.Min(spaceAround.links, spaceAround.rechts) + Math.Min(spaceAround.oben, spaceAround.unten); //Summe von (kleinste Außenfläche rechts links) und (kleinste Außenfläche oben unten)
+				(int links, int rechts, int oben, int unten) = getSpaceAround5(unoccupiedFields, afr, freePositions[i]);
+				int area = Math.Min(links, rechts) + Math.Min(oben, unten); //Summe von (kleinste Außenfläche rechts links) und (kleinste Außenfläche oben unten)
 				if (area < best.smallestArea) {
 					best = (area, freePositions[i]);
 				}
