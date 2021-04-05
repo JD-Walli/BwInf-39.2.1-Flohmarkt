@@ -31,10 +31,10 @@ namespace BwInf_39._2._1_Flohmarkt {
 
 		#region constructors
 
-		public simulatedAnnealing((List<Anfrage> anfragen, int number) data, int streetLength=1000, int duration=10, int startzeit=8, int startTemperature=25, int durchläufe=70000, double verkleinerungsrate=0.99995) {
-			this.anfragen.verwendet = data.anfragen;
+		public simulatedAnnealing( int number,List<Anfrage> anfragen, int streetLength=1000, int startzeit=8, int duration=10, int startTemperature=25, int durchläufe=70000, double verkleinerungsrate=0.99995) {
+			this.anfragen.verwendet = anfragen;
 			this.anfragen.abgelehnt = new List<Anfrage>();
-			this.number = data.number;
+			this.number = number;
 			this.streetLength = streetLength;
 			this.duration = duration;
 			this.startzeit = startzeit;
