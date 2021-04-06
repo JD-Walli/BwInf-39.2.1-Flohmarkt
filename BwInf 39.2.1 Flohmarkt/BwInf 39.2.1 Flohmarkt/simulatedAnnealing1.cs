@@ -691,6 +691,58 @@ namespace BwInf_39._2._1_Flohmarkt {
             }
         }
 
+        public void analyseResults(List<Anfrage> anfragen) {
+            double carThreshold = 5;
+            List<int> parkingSpots = new List<int>();
+            for (int t = startzeit; t < startzeit + duration; t++) {
+                Anfrage thisAfr = new Anfrage(-4, t, t + 1, streetLength, 0);
+                parkingSpots.Add(0);
+                foreach (Anfrage afr in anfragen) {
+                    int thisOverlap = afr.overlap(thisAfr);
+                    if (thisOverlap > 0) {
+                        parkingSpots[parkingSpots.Count - 1] += (int)Math.Ceiling((double)thisOverlap / (double)carThreshold);
+                    }
+                }
+            }
+
+            int[] newCarsPerHour = new int[duration];
+            for (int t = startzeit; t < startzeit + duration; t++) {
+                foreach (Anfrage afr in anfragen) {
+                    if (afr.mietbeginn == t) {
+                        newCarsPerHour[t - startzeit]++;
+                    }
+                }
+            }
+
+            int[] toiletUsesPerHour = new int[duration];
+            int hoursBetweenToiletUse = 2;
+            for (int t = startzeit; t < startzeit + duration; t++) {
+                foreach (Anfrage afr in anfragen) {
+                    if (t - afr.mietbeginn >= 0 && (t - afr.mietbeginn) % hoursBetweenToiletUse == 0) {
+                        toiletUsesPerHour[t - startzeit]++;
+                    }
+                }
+            }
+
+            int[] earningsPerHour = new int[duration];
+            for (int t = 0; t < unoccupiedFields.GetLength(1); t++) {
+                for (int x = 0; x < unoccupiedFields.GetLength(0); x++) {
+                    if (unoccupiedFields[x, t] == false) {
+                        earningsPerHour[t]++;
+                    }
+                }
+            }
+
+        }
+
+        private bool[,] setAfrUnoccupiedFields(bool[,] unoccupiedFieldsLoc, Anfrage afr, bool boolVal) {
+            for (int i = afr.mietbeginn - startzeit; i < afr.mietende - startzeit; i++) {
+                for (int j = afr.position; j < afr.position + afr.länge; j++) {
+                    unoccupiedFieldsLoc[j, i] = boolVal;
+                }
+            }
+            return unoccupiedFieldsLoc;
+        }
 
         public delegate int EnDel(List<Anfrage> anfragenLocal, double temperatur);
         public delegate (List<Anfrage> verwendet, List<Anfrage> abgelehnt) moveDel((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp);

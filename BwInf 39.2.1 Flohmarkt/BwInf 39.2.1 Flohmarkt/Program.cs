@@ -22,7 +22,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             simAnn.setPositions5((true, true, true));
             //simAnn.simulate();
             simAnn.finish();
-            simAnn.findFreePositionsInRange(19, 16, 2, 3, 10, 15);
+            //simAnn.findFreePositionsInRange(19, 16, 2, 3, 10, 15);
 
             Console.ReadLine();
         }
@@ -78,5 +78,6 @@ namespace BwInf_39._2._1_Flohmarkt {
             return (anfragen, true);
         }
 
+        
     }
 }
