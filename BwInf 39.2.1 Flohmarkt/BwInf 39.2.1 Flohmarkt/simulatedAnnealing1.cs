@@ -704,38 +704,41 @@ namespace BwInf_39._2._1_Flohmarkt {
             }
         }
 
-        public void analyseResults(List<Anfrage> anfragen) {
-            double carThreshold = 5;
-            List<int> parkingSpots = new List<int>();
-            for (int t = startzeit; t < startzeit + duration; t++) {
-                Anfrage thisAfr = new Anfrage(-4, t, t + 1, streetLength, 0);
-                parkingSpots.Add(0);
-                foreach (Anfrage afr in anfragen) {
-                    int thisOverlap = afr.overlap(thisAfr);
-                    if (thisOverlap > 0) {
-                        parkingSpots[parkingSpots.Count - 1] += (int)Math.Ceiling((double)thisOverlap / (double)carThreshold);
-                    }
-                }
-            }
-
-            int[] newCarsPerHour = new int[duration];
-            for (int t = startzeit; t < startzeit + duration; t++) {
-                foreach (Anfrage afr in anfragen) {
-                    if (afr.mietbeginn == t) {
-                        newCarsPerHour[t - startzeit]++;
-                    }
-                }
-            }
-
+        //vereinfachen (Schleifen mergen)
+        public void analyseResults() {
+            Console.WriteLine("\nANALYSE RESULT:");
+            double carThreshold = 5;//ab wievielen Metern Stand braucht man ein zusätzlichen Autostellplatz?
+            int hoursBetweenToiletUse = 2;// alle wieviel Stunden ghet man durchschnittlich auf Toilette? (abhängig von Wetter, Essensangebot,...)
+            int[] parkingSpots = new int[duration];
+            int[] anfragenNum = new int[duration];
             int[] toiletUsesPerHour = new int[duration];
-            int hoursBetweenToiletUse = 2;
+
             for (int t = startzeit; t < startzeit + duration; t++) {
-                foreach (Anfrage afr in anfragen) {
+                foreach (Anfrage afr in anfragen.verwendet) {
+                    if (afr.mietbeginn <= t && afr.mietende > t) {
+                        parkingSpots[t - startzeit] += (int)Math.Ceiling((double)afr.länge / (double)carThreshold);
+                        anfragenNum[t - startzeit]++;
+                    }
+
                     if (t - afr.mietbeginn >= 0 && (t - afr.mietbeginn) % hoursBetweenToiletUse == 0) {
                         toiletUsesPerHour[t - startzeit]++;
                     }
                 }
             }
+            printArray(anfragenNum, "anfragen per hour");
+            printArray(parkingSpots, "parking spots per hour");
+
+            int[] newCarsPerHour = new int[duration];
+            for (int t = startzeit; t < startzeit + duration; t++) {
+                foreach (Anfrage afr in anfragen.verwendet) {
+                    if (afr.mietbeginn == t) {
+                        newCarsPerHour[t - startzeit] += (int)Math.Ceiling((double)afr.länge / (double)carThreshold);
+                    }
+                }
+            }
+            printArray(newCarsPerHour, "new Cars Per Hour");
+
+            printArray(toiletUsesPerHour, "toilet Uses Per Hour");
 
             int[] earningsPerHour = new int[duration];
             for (int t = 0; t < unoccupiedFields.GetLength(1); t++) {
@@ -745,7 +748,20 @@ namespace BwInf_39._2._1_Flohmarkt {
                     }
                 }
             }
+            printArray(earningsPerHour, "earnings Per Hour");
 
+        }
+
+        private void printArray(int[] array, string name) {
+            Console.WriteLine("  " + name.ToUpper() + ":");
+            string firstLine = "    ";
+            string secondLine = "    ";
+            for (int i = 0; i < array.Length; i++) {
+                firstLine += "\t" + (i + startzeit);
+                secondLine += "\t" + array[i];
+            }
+            Console.WriteLine(firstLine);
+            Console.WriteLine(secondLine);
         }
 
         private bool[,] setAfrUnoccupiedFields(bool[,] unoccupiedFieldsLoc, Anfrage afr, bool boolVal) {

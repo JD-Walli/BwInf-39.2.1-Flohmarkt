@@ -15,14 +15,15 @@ namespace BwInf_39._2._1_Flohmarkt {
             }
             else { return; }
 
-            simulatedAnnealing simAnn = new simulatedAnnealing(number, anfragen, streetLength, starttime, duration, 25, 70000, 0.99995);
+            simulatedAnnealing simAnn = new simulatedAnnealing(number, anfragen, streetLength, starttime, duration, 25, 70, 0.99995);
             simAnn.borderPos = new List<int>() { 440, 402 };
-            simAnn.energyType = (simAnn.energy2, "energy2");
-            simAnn.moveType = (simAnn.move2, "move2");
-            simAnn.setRandomPositions2(0);
-            //simAnn.setPositions5((true, true, true));
-            simAnn.simulate();
+            simAnn.energyType = (simAnn.energy, "energy");
+            simAnn.moveType = (simAnn.move4, "move4");
+            //simAnn.setRandomPositions2(0);
+            simAnn.setPositions5((true, true, true));
+            //simAnn.simulate();
             simAnn.finish();
+            simAnn.analyseResults();
             //simAnn.findFreePositionsInRange(19, 16, 2, 3, 10, 15);
 
             Console.ReadLine();
@@ -75,7 +76,7 @@ namespace BwInf_39._2._1_Flohmarkt {
                     return (anfragen, false);
                 }
             }
-            Console.WriteLine("data is vaid!");
+            Console.WriteLine("data is valid!");
             return (anfragen, true);
         }
 
