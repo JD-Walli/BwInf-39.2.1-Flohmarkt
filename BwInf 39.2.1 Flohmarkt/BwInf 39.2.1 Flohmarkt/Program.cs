@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace BwInf_39._2._1_Flohmarkt {
 	class Program {
 		static void Main(string[] args) {
-            int number = 10; int duration = 10; int starttime = 8; int streetLength = 1000; List<Anfrage> anfragen = readData(number);
+            int number = 1; int duration = 10; int starttime = 8; int streetLength = 1000; List<Anfrage> anfragen = readData(number);
 
             (List<Anfrage> newAnfragen, bool valid) validated = validateData(anfragen, streetLength, starttime, duration);
             if (validated.valid) {
@@ -19,8 +19,9 @@ namespace BwInf_39._2._1_Flohmarkt {
             simAnn.moveType = (simAnn.move4, "move4");
             //simAnn.setRandomPositions2(0);
             simAnn.setPositions5((true, true, true));
-            simAnn.simulate();
+            //simAnn.simulate();
             simAnn.finish();
+            simAnn.findFreePositionsInRange(19, 16, 2, 3, 10, 15);
 
             Console.ReadLine();
 		}
@@ -46,29 +47,34 @@ namespace BwInf_39._2._1_Flohmarkt {
                 }
                 if (afr.mietende > starttime + duration) {
                     Console.WriteLine("invalid data (rent ends to late) at line {0}", afr.id + 1);
-                    Console.WriteLine("  rentEnd={0}, latestEnd={1}", afr.mietende ,(starttime + duration));
+                    Console.WriteLine("  rentEnd={0}, latestEnd={1}", afr.mietende, (starttime + duration));
                     invalidIDs.Add(afr.id);
                 }
                 if (afr.länge > streetLength) {
                     Console.WriteLine("invalid data (length to big) at line {0}", afr.id + 1);
-                    Console.WriteLine("  länge={0}, streetLength={1}", afr.länge , streetLength);
+                    Console.WriteLine("  länge={0}, streetLength={1}", afr.länge, streetLength);
                     invalidIDs.Add(afr.id);
                 }
                 if (afr.mietbeginn >= afr.mietende) {
                     Console.WriteLine("invalid data (rent start must be smaller than rent end) at line {0}", afr.id + 1);
-                    Console.WriteLine("  rentStart={0}, rentEnd={1}", afr.mietbeginn , afr.mietende);
+                    Console.WriteLine("  rentStart={0}, rentEnd={1}", afr.mietbeginn, afr.mietende);
                     invalidIDs.Add(afr.id);
                 }
             }
-            Console.WriteLine("remove invalid data (r) or exit program (e)? ");
-            if (Console.ReadKey().Key.ToString() == "R") {
-                anfragen.RemoveAll(afr => invalidIDs.Contains(afr.id));
-                Console.WriteLine("\n\n");
-                return (anfragen, true);
+            if (invalidIDs.Count != 0) {
+                Console.WriteLine("remove invalid data (r) or exit program (e)? ");
+                if (Console.ReadKey().Key.ToString() == "R") {
+                    anfragen.RemoveAll(afr => invalidIDs.Contains(afr.id));
+                    Console.WriteLine("\n\n");
+                    return (anfragen, true);
+                }
+                else {
+                    Console.WriteLine("\n\n");
+                    return (anfragen, false);
+                }
             }
-            else {
-                Console.WriteLine("\n\n");
-                return (anfragen, false); }
+            Console.WriteLine("data is vaid!");
+            return (anfragen, true);
         }
 
     }

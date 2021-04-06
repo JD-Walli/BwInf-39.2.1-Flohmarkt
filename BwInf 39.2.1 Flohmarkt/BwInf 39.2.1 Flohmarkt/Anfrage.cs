@@ -33,6 +33,8 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         public Anfrage clone() { return new Anfrage(this.id, this.mietbeginn, this.mietende, this.länge, this.position); }
 
-        
+        public void print() {
+            Console.WriteLine("{0}: from {1} to {2} at position {3} for {4} tables",id, mietbeginn, mietende, position, länge);
+        }
     }
 }

@@ -14,7 +14,9 @@ namespace BwInf_39._2._1_Flohmarkt {
         readonly int duration;
 		readonly int startzeit;
 
-		readonly int number;
+        private bool[,] unoccupiedFields;
+
+        readonly int number;
         readonly string programStartTime;
         public List<string> metaToSave = new List<string>();
         public List<string> logToSave = new List<string>();
@@ -42,6 +44,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 			this.durchläufe = durchläufe;
 			this.verkleinerungsrate = verkleinerungsrate;
             programStartTime = DateTime.Now.ToString("yyMMdd HHmmss") + "";
+            unoccupiedFields = new bool[streetLength, duration];
         }
 
 		public simulatedAnnealing() { }
@@ -87,7 +90,6 @@ namespace BwInf_39._2._1_Flohmarkt {
             (List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLoc = cloneLists(anfragen);
 			anfragen.verwendet.Clear(); anfragen.abgelehnt.Clear();
 
-			bool[,] unoccupiedFields = new bool[streetLength, duration];
 			for (int i = 0; i < unoccupiedFields.GetLength(0); i++) { for (int j = 0; j < unoccupiedFields.GetLength(1); j++) { unoccupiedFields[i, j] = true; } }
             if (state.sorted) {
                 if (state.comparer5) { anfragenLoc.verwendet.Sort(compareByRent5); }
@@ -96,7 +98,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             foreach (Anfrage afr in anfragenLoc.verwendet) {
 				List<int> freePositions = findFreePositions5(unoccupiedFields, afr);
 				if (freePositions.Count > 0) {
-                    if (state.optimalPos) { afr.position = findBestPosition5(unoccupiedFields, afr, freePositions);
+                    if (state.optimalPos) { afr.position = findBestPosition5(unoccupiedFields, afr, freePositions)[0];
                     } else { afr.position = freePositions[rnd.Next(freePositions.Count)]; }
                     anfragen.verwendet.Add(afr);
 					for (int i = afr.mietbeginn - startzeit; i < afr.mietende - startzeit; i++) {
@@ -517,16 +519,16 @@ namespace BwInf_39._2._1_Flohmarkt {
 		/// findet alle möglichen Positionen für eine gegebene Anfrage, an denen keine Überschneidung auftritt auf Basis von occupiedFields[] -> skaliert besser
 		/// </summary>
 		/// <param name="afr">Anfrage</param>
-		/// <param name="unoccupiedFields">2D Array das die Ort-Zeit-tafel darstellt. true: frei; false: besetzt</param>
+		/// <param name="unoccupiedFieldsLoc">2D Array das die Ort-Zeit-tafel darstellt. true: frei; false: besetzt</param>
 		/// <returns>Liste mit allen Positionen in der Straße bei denen für die Anfrage keine Überschneidung auftritt</returns>
-		private List<int> findFreePositions5(bool[,] unoccupiedFields, Anfrage afr) {
+		private List<int> findFreePositions5(bool[,] unoccupiedFieldsLoc, Anfrage afr) {
 			List<int> positions = new List<int>();
-			for (int x = 0; x <= unoccupiedFields.GetLength(0) - afr.länge; x++) {
+			for (int x = 0; x <= unoccupiedFieldsLoc.GetLength(0) - afr.länge; x++) {
 				bool horizontalPosition = true;
 				for (int j = 0; j < afr.länge; j++) {
 					bool vertikalPosition = true;
 					for (int y = afr.mietbeginn - startzeit; y < afr.mietende - startzeit; y++) {
-						if (unoccupiedFields[x + j, y] == false) { vertikalPosition = false; break; }
+						if (unoccupiedFieldsLoc[x + j, y] == false) { vertikalPosition = false; break; }
 					}
 					if (vertikalPosition == false) { horizontalPosition = false; x += j; break; }
 				}
@@ -582,15 +584,15 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// <summary>
         /// berechnet an eine Anfrage grenzende Fläche auf der Zeit-Ort-Tafel bis zur nächsten Anfrage; 
         /// </summary>
-        /// <param name="unoccupiedFields">bool array mit unbelegten Feldern</param>
+        /// <param name="unoccupiedFieldsLoc">bool array mit unbelegten Feldern</param>
         /// <param name="afr"></param>
         /// <param name="position"></param>
         /// <returns></returns>
-        private (int links, int rechts, int oben, int unten) getSpaceAround5(bool[,] unoccupiedFields, Anfrage afr, int position) {
+        private (int links, int rechts, int oben, int unten) getSpaceAround5(bool[,] unoccupiedFieldsLoc, Anfrage afr, int position) {
 			int links = 0;
 			for (int i = afr.mietbeginn - startzeit; i < afr.mietende - startzeit; i++) {
 				for (int j = position - 1; j >= 0; j--) {
-					if (unoccupiedFields[j, i] == false) { break; }
+					if (unoccupiedFieldsLoc[j, i] == false) { break; }
 					links++;
 				}
 			}
@@ -598,7 +600,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 			int rechts = 0;
 			for (int i = afr.mietbeginn - startzeit; i < afr.mietende - startzeit; i++) {
 				for (int j = position + afr.länge; j < streetLength; j++) {
-					if (unoccupiedFields[j, i] == false) { break; }
+					if (unoccupiedFieldsLoc[j, i] == false) { break; }
 					rechts++;
 				}
 			}
@@ -606,7 +608,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 			int oben = 0;
 			for (int i = position; i < position + afr.länge; i++) {
 				for (int j = afr.mietbeginn - startzeit - 1; j >= 0; j--) {
-					if (unoccupiedFields[i, j] == false) { break; }
+					if (unoccupiedFieldsLoc[i, j] == false) { break; }
 					oben++;
 				}
 			}
@@ -614,7 +616,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 			int unten = 0;
 			for (int i = position; i < position + afr.länge; i++) {
 				for (int j = afr.mietende - startzeit; j < duration; j++) {
-					if (unoccupiedFields[i, j] == false) { break; }
+					if (unoccupiedFieldsLoc[i, j] == false) { break; }
 					unten++;
 				}
 			}
@@ -627,21 +629,59 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// <summary>
         /// findet beste Position für gegebene Anfrage; 
         /// </summary>
-        /// <param name="unoccupiedFields"></param>
+        /// <param name="unoccupiedFieldsLoc"></param>
         /// <param name="afr"></param>
         /// <param name="freePositions"></param>
         /// <returns></returns>
-        private int findBestPosition5(bool[,] unoccupiedFields, Anfrage afr, List<int> freePositions) {
-			(int smallestArea, int position) best = (int.MaxValue, -2);
-			for (int i = 0; i < freePositions.Count; i++) {
-				(int links, int rechts, int oben, int unten) = getSpaceAround5(unoccupiedFields, afr, freePositions[i]);
-				int area = Math.Min(links, rechts) + Math.Min(oben, unten); //Summe von (kleinste Außenfläche rechts links) und (kleinste Außenfläche oben unten)
-				if (area < best.smallestArea) {
-					best = (area, freePositions[i]);
-				}
-			}
-			return best.position;
+        private List<int> findBestPosition5(bool[,] unoccupiedFieldsLoc, Anfrage afr, List<int> freePositions) {
+            (int smallestArea, List<int> positions) best = (int.MaxValue, new List<int>() { -2 });
+            for (int i = 0; i < freePositions.Count; i++) {
+                (int links, int rechts, int oben, int unten) = getSpaceAround5(unoccupiedFieldsLoc, afr, freePositions[i]);
+                int area = Math.Min(links, rechts) + Math.Min(oben, unten); //Summe von (kleinste Außenfläche rechts links) und (kleinste Außenfläche oben unten)
+                if (area < best.smallestArea) {
+                    best = (area, new List<int>() { freePositions[i] });
+                } else if (area == best.smallestArea) {
+                    best.positions.Add(freePositions[i]);
+                }
+            }
+			return best.positions;
 		}
+
+
+        public void findFreePositionsInRange(int minStartTime, int maxEndTime, int minDauer, int maxDauer, int minLänge, int maxLänge, int maxKosten=int.MaxValue) {
+            if (minStartTime >= maxEndTime) { Console.WriteLine("invalid input (minStartTime >= maxEndTime)"); return; }
+            if (minDauer >= maxDauer) { Console.WriteLine("invalid input (minDauer >= maxDauer)"); return; }
+            if (minLänge >= maxLänge) { Console.WriteLine("invalid input (minLänge >= maxLänge)"); return; }
+            if (minStartTime + maxDauer > maxEndTime) { Console.WriteLine("invalid input (minStartTime+dauer > maxEndTime)"); return; }
+            if(maxDauer*maxLänge>maxKosten) { Console.WriteLine("invalid input (länge+dauer > maxKosten)"); return; }
+            if (maxLänge > streetLength) { Console.WriteLine("invalid input (maxLänge > streetLength)"); return; }
+            if (maxEndTime> startzeit + duration) { Console.WriteLine("invalid input (maxEndTime> startzeit + duration)"); return; }
+
+            List<(List<int> positions, Anfrage afr)> positions = new List<(List<int> , Anfrage ) > ();
+            for(int länge=minLänge; länge< maxLänge; länge++) {
+                for( int dauer= minDauer; dauer <= maxDauer; dauer++) {
+                    for(int starttime = minStartTime; starttime <= maxEndTime - dauer; starttime++) {
+                        if (länge * dauer <= maxKosten) {
+                            Anfrage thisafr = new Anfrage(-1, starttime, starttime + dauer, länge, 0);
+                            List<int> thisPositions = findFreePositions5(unoccupiedFields, thisafr);
+                            if (thisPositions.Count != 0) {
+                                positions.Add((thisPositions, thisafr));
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach((List<int> positions, Anfrage afr) pos in positions) {
+                pos.afr.print();
+                List<int> bestPositions = findBestPosition5(unoccupiedFields, pos.afr, pos.positions);
+                foreach (int pos2 in bestPositions) {
+                    Console.Write("  " + pos2);
+                }
+                
+                Console.WriteLine();
+            }
+        }
 
 
         public delegate int EnDel(List<Anfrage> anfragenLocal, double temperatur);
