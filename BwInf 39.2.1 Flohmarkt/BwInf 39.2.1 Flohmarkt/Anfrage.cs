@@ -23,8 +23,8 @@ namespace BwInf_39._2._1_Flohmarkt {
         }
 
         public int overlap(Anfrage afr2) {
-            int xOverlap = Math.Min(position + länge, afr2.position + afr2.länge)-Math.Max(position, afr2.position);
-            int yOverlap = Math.Min(mietende, afr2.mietende)-Math.Max(mietbeginn, afr2.mietbeginn);
+            int xOverlap = Math.Min(position + länge, afr2.position + afr2.länge) - Math.Max(position, afr2.position);
+            int yOverlap = Math.Min(mietende, afr2.mietende) - Math.Max(mietbeginn, afr2.mietbeginn);
             if (xOverlap > 0 && yOverlap > 0) {
                 return xOverlap * yOverlap;
             }
@@ -34,7 +34,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         public Anfrage clone() { return new Anfrage(this.id, this.mietbeginn, this.mietende, this.länge, this.position); }
 
         public void print() {
-            Console.WriteLine("{0}: from {1} to {2} at position {3} for {4} tables",id, mietbeginn, mietende, position, länge);
+            Console.WriteLine("{0}: from {1} to {2} at position {3} for {4} tables", id, mietbeginn, mietende, position, länge);
         }
     }
 }

@@ -5,17 +5,18 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace BwInf_39._2._1_Flohmarkt {
-	class Program {
-		static void Main(string[] args) {
+    class Program {
+        static void Main(string[] args) {
             int number = 1; int duration = 10; int starttime = 8; int streetLength = 1000; List<Anfrage> anfragen = readData(number);
 
             (List<Anfrage> newAnfragen, bool valid) validated = validateData(anfragen, streetLength, starttime, duration);
             if (validated.valid) {
                 anfragen = validated.newAnfragen;
-            } else { return; }
+            }
+            else { return; }
 
             simulatedAnnealing simAnn = new simulatedAnnealing(number, anfragen, streetLength, starttime, duration, 25, 70, 0.99995);
-            simAnn.energyType= (simAnn.energy, "energy");
+            simAnn.energyType = (simAnn.energy, "energy");
             simAnn.moveType = (simAnn.move4, "move4");
             //simAnn.setRandomPositions2(0);
             simAnn.setPositions5((true, true, true));
@@ -24,18 +25,18 @@ namespace BwInf_39._2._1_Flohmarkt {
             simAnn.findFreePositionsInRange(19, 16, 2, 3, 10, 15);
 
             Console.ReadLine();
-		}
+        }
 
-		private static List<Anfrage> readData(int number) {
-			string[] lines = System.IO.File.ReadAllLines(System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName + "/flohmarkt " + number + ".txt");
-			List<Anfrage> anfragen = new List<Anfrage>();
-			for (int i = 1; i < lines.Length; i++) {
-				string[] line = lines[i].Split(' ');
-				anfragen.Add(new Anfrage(i - 1, int.Parse(line[0].Trim()), int.Parse(line[1].Trim()), int.Parse(line[2].Trim()), 0));
-			}
-			Console.WriteLine(anfragen.Count + "  " + lines.Length);
-			return anfragen;
-		}
+        private static List<Anfrage> readData(int number) {
+            string[] lines = System.IO.File.ReadAllLines(System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName + "/flohmarkt " + number + ".txt");
+            List<Anfrage> anfragen = new List<Anfrage>();
+            for (int i = 1; i < lines.Length; i++) {
+                string[] line = lines[i].Split(' ');
+                anfragen.Add(new Anfrage(i - 1, int.Parse(line[0].Trim()), int.Parse(line[1].Trim()), int.Parse(line[2].Trim()), 0));
+            }
+            Console.WriteLine(anfragen.Count + "  " + lines.Length);
+            return anfragen;
+        }
 
         private static (List<Anfrage> newAnfragen, bool valid) validateData(List<Anfrage> anfragen, int streetLength, int starttime, int duration) {
             List<int> invalidIDs = new List<int>();
