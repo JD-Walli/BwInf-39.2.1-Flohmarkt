@@ -13,8 +13,9 @@ namespace BwInf_39._2._1_Flohmarkt {
         readonly int streetLength;
         readonly int duration;
         readonly int startzeit;
+        public List<int> borderPos;
 
-        private bool[,] unoccupiedFields;
+        private bool[,] unoccupiedFields; //nur für Varianten ohne Überschneidungen erlaubt/brauchbar
 
         readonly int number;
         readonly string programStartTime;
@@ -45,6 +46,8 @@ namespace BwInf_39._2._1_Flohmarkt {
             this.verkleinerungsrate = verkleinerungsrate;
             programStartTime = DateTime.Now.ToString("yyMMdd HHmmss") + "";
             unoccupiedFields = new bool[streetLength, duration];
+            for (int i = 0; i < unoccupiedFields.GetLength(0); i++) { for (int j = 0; j < unoccupiedFields.GetLength(1); j++) { unoccupiedFields[i, j] = true; } }
+            borderPos = new List<int>();
         }
 
         public simulatedAnnealing() { }
@@ -90,7 +93,6 @@ namespace BwInf_39._2._1_Flohmarkt {
             (List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLoc = cloneLists(anfragen);
             anfragen.verwendet.Clear(); anfragen.abgelehnt.Clear();
 
-            for (int i = 0; i < unoccupiedFields.GetLength(0); i++) { for (int j = 0; j < unoccupiedFields.GetLength(1); j++) { unoccupiedFields[i, j] = true; } }
             if (state.sorted) {
                 if (state.comparer5) { anfragenLoc.verwendet.Sort(compareByRent5); }
                 else { anfragenLoc.verwendet.Sort(compareByRent4); }
@@ -103,11 +105,7 @@ namespace BwInf_39._2._1_Flohmarkt {
                     }
                     else { afr.position = freePositions[rnd.Next(freePositions.Count)]; }
                     anfragen.verwendet.Add(afr);
-                    for (int i = afr.mietbeginn - startzeit; i < afr.mietende - startzeit; i++) {
-                        for (int j = afr.position; j < afr.position + afr.länge; j++) {
-                            unoccupiedFields[j, i] = false;
-                        }
-                    }
+                    unoccupiedFields = setAfrUnoccupiedFields(unoccupiedFields, afr, false);
                 }
                 else {
                     afr.position = -1;
@@ -138,7 +136,7 @@ namespace BwInf_39._2._1_Flohmarkt {
                 newAnfragen = moveType.del(newAnfragen, temp); //variabel
                 int newEnergy = energyType.del(newAnfragen.verwendet, temp);//variabel
                 logToSave[logToSave.Count - 1] += " " + newEnergy;
-                if (i % 100 == 0) Console.WriteLine(i);
+                if (i % 100 == 0) Console.WriteLine(i + "  " + currentEnergy);
                 if (newEnergy <= currentEnergy || rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)) {//|| rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)
                     currentEnergy = newEnergy;
                     logToSave[logToSave.Count - 1] += " " + sumOverlap(newAnfragen.verwendet).anzahl; logToSave.Add("");
@@ -217,9 +215,11 @@ namespace BwInf_39._2._1_Flohmarkt {
                 int move = x;
                 //move = (int)(move * (1 - temp / startTemperature)); 
                 move = (move == 0) ? ((x > 0) ? +1 : -1) : move;
-                List<int> freePositions = findFreePositions4(anfragen.verwendet[index], anfragen.verwendet);
+                List<int> freePositions = findFreePositions5(unoccupiedFields, anfragen.verwendet[index]);
                 if (freePositions.Count > 0) {
+                    unoccupiedFields = setAfrUnoccupiedFields(unoccupiedFields, anfragen.verwendet[index], true);
                     anfragen.verwendet[index].position = freePositions[findClosestValue4(anfragen.verwendet[index].position + move, freePositions)];
+                    unoccupiedFields = setAfrUnoccupiedFields(unoccupiedFields, anfragen.verwendet[index], false);
                 }
                 logToSave.Add("verschiebe");
             }
@@ -229,15 +229,17 @@ namespace BwInf_39._2._1_Flohmarkt {
                     int index = rnd.Next(anfragen.verwendet.Count);
                     anfragen.abgelehnt.Add(anfragen.verwendet[index]);
                     anfragen.verwendet.RemoveAt(index);
+                    unoccupiedFields = setAfrUnoccupiedFields(unoccupiedFields, anfragen.verwendet[index], true);
                     logToSave.Add("swap->abgelehnt");
                 }
                 else {//rausswap
                     int index = rnd.Next(anfragen.abgelehnt.Count);
-                    List<int> freePositions = findFreePositions4(anfragen.abgelehnt[index], anfragen.verwendet);
+                    List<int> freePositions = findFreePositions5(unoccupiedFields, anfragen.verwendet[index]);
                     if (freePositions.Count > 0) {
                         anfragen.abgelehnt[index].position = freePositions[rnd.Next(freePositions.Count)];
                         anfragen.verwendet.Add(anfragen.abgelehnt[index]);
                         anfragen.abgelehnt.RemoveAt(index);
+                        unoccupiedFields = setAfrUnoccupiedFields(unoccupiedFields, anfragen.verwendet[index], false);
                         logToSave.Add("swap->verwendet");
                     }
                 }
@@ -310,9 +312,14 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// <returns></returns>
         public int energy2(List<Anfrage> anfragenLocal, double temperatur = 0) {
             int energy = 0;
-            for (int i = 0; i < anfragenLocal.Count; i++) {
-                if (checkIfOverlap3(anfragenLocal[i], anfragenLocal) == false) {
-                    energy -= anfragenLocal[i].länge * anfragenLocal[i].mietdauer;
+            foreach (Anfrage afr in anfragenLocal) {
+                if (checkIfOverlap3(afr, anfragenLocal) == false) {
+                    energy -= afr.länge * afr.mietdauer;
+                }
+                foreach (int border in borderPos) {
+                    if (afr.position < border && afr.position + afr.länge > border) {
+                        energy += 2 * afr.länge * afr.mietdauer;
+                    }
                 }
             }
             return energy;
@@ -521,7 +528,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         //O(n)= 10^3*afr.länge*afr.dauer
         /// <summary>
-        /// findet alle möglichen Positionen für eine gegebene Anfrage, an denen keine Überschneidung auftritt auf Basis von occupiedFields[] -> skaliert besser
+        /// findet alle möglichen Positionen für eine gegebene Anfrage, diekeine Grenze überschreitet, an denen keine Überschneidung auftritt auf Basis von occupiedFields[] -> skaliert besser
         /// </summary>
         /// <param name="afr">Anfrage</param>
         /// <param name="unoccupiedFieldsLoc">2D Array das die Ort-Zeit-tafel darstellt. true: frei; false: besetzt</param>
@@ -529,16 +536,22 @@ namespace BwInf_39._2._1_Flohmarkt {
         private List<int> findFreePositions5(bool[,] unoccupiedFieldsLoc, Anfrage afr) {
             List<int> positions = new List<int>();
             for (int x = 0; x <= unoccupiedFieldsLoc.GetLength(0) - afr.länge; x++) {
-                bool horizontalPosition = true;
-                for (int j = 0; j < afr.länge; j++) {
-                    bool vertikalPosition = true;
-                    for (int y = afr.mietbeginn - startzeit; y < afr.mietende - startzeit; y++) {
-                        if (unoccupiedFieldsLoc[x + j, y] == false) { vertikalPosition = false; break; }
-                    }
-                    if (vertikalPosition == false) { horizontalPosition = false; x += j; break; }
+                bool crossBorder = false;
+                foreach (int border in borderPos) { //check if current position would cross any border (Erweiterung)
+                    if (x < border && x + afr.länge > border) { crossBorder = true; break; }
                 }
-                if (horizontalPosition) {
-                    positions.Add(x);
+                if (crossBorder == false) {
+                    bool horizontalPosition = true;
+                    for (int j = 0; j < afr.länge; j++) {
+                        bool vertikalPosition = true;
+                        for (int y = afr.mietbeginn - startzeit; y < afr.mietende - startzeit; y++) {
+                            if (unoccupiedFieldsLoc[x + j, y] == false) { vertikalPosition = false; break; }
+                        }
+                        if (vertikalPosition == false) { horizontalPosition = false; x += j; break; }
+                    }
+                    if (horizontalPosition) {
+                        positions.Add(x);
+                    }
                 }
             }
             return positions;
