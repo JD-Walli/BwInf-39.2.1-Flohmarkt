@@ -10,9 +10,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             int number = 1; int duration = 10; int starttime = 8; int streetLength = 1000; List<Anfrage> anfragen = readData(number);
 
             (List<Anfrage> newAnfragen, bool valid) validated = validateData(anfragen, streetLength, starttime, duration);
-            if (validated.valid) {
-                anfragen = validated.newAnfragen;
-            }
+            if (validated.valid) { anfragen = validated.newAnfragen; }
             else { return; }
 
             simulatedAnnealing simAnn = new simulatedAnnealing(number, anfragen, streetLength, starttime, duration, 25, 70, 0.99995);
@@ -22,7 +20,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             //simAnn.setRandomPositions2(0);
             simAnn.setPositions5((true, true, true));
             //simAnn.simulate();
-            simAnn.finish();
+            simAnn.printSaveResult();
             simAnn.analyseResults();
             //simAnn.findFreePositionsInRange(19, 16, 2, 3, 10, 15);
 

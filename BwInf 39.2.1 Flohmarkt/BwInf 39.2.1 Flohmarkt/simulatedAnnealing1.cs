@@ -12,7 +12,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         readonly int streetLength;
         readonly int duration;
-        readonly int startzeit;
+        readonly int starttime;
         public List<int> borderPos;
 
         private bool[,] unoccupiedFields; //nur für Varianten ohne Überschneidungen erlaubt/brauchbar
@@ -22,9 +22,9 @@ namespace BwInf_39._2._1_Flohmarkt {
         public List<string> metaToSave = new List<string>();
         public List<string> logToSave = new List<string>();
 
-        readonly int durchläufe;
+        readonly int runs;
         readonly int startTemperature;
-        readonly double verkleinerungsrate;
+        readonly double tempDecreaseRate;
         public (EnDel del, string name) energyType;
         public (moveDel del, string name) moveType;
 
@@ -34,16 +34,18 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         #region constructors
 
-        public simulatedAnnealing(int number, List<Anfrage> anfragen, int streetLength = 1000, int startzeit = 8, int duration = 10, int startTemperature = 25, int durchläufe = 70000, double verkleinerungsrate = 0.99995) {
+        public simulatedAnnealing(int number, List<Anfrage> anfragen, int streetLength = 1000, int starttime = 8, int duration = 10, int startTemperature = 25, int durchläufe = 70000, double tempDecreaseRate = 0.99995) {
             this.anfragen.verwendet = anfragen;
             this.anfragen.abgelehnt = new List<Anfrage>();
             this.number = number;
             this.streetLength = streetLength;
             this.duration = duration;
-            this.startzeit = startzeit;
+            this.starttime = starttime;
             this.startTemperature = startTemperature;
-            this.durchläufe = durchläufe;
-            this.verkleinerungsrate = verkleinerungsrate;
+            this.runs = durchläufe;
+            this.tempDecreaseRate = tempDecreaseRate;
+            energyType = (energy, "energy");
+            moveType = (move4, "move4");
             programStartTime = DateTime.Now.ToString("yyMMdd HHmmss") + "";
             unoccupiedFields = new bool[streetLength, duration];
             for (int i = 0; i < unoccupiedFields.GetLength(0); i++) { for (int j = 0; j < unoccupiedFields.GetLength(1); j++) { unoccupiedFields[i, j] = true; } }
@@ -68,17 +70,17 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// <summary>
         /// setzt zufällige Positionen, auch auf abgelehnt Liste
         /// </summary>
-        /// <param name="anteilAbgelehnt">anteil in Prozent der auf die Warteliste gesetzten</param>
-        public void setRandomPositions2(int anteilAbgelehnt) {
+        /// <param name="percentageRejected">anteil in Prozent der auf die Warteliste gesetzten</param>
+        public void setRandomPositions2(int percentageRejected) {
             foreach (Anfrage a in anfragen.verwendet) {
                 a.position = rnd.Next(streetLength - a.länge + 1);
             }
-            for (int i = 0; i < (((float)anteilAbgelehnt / 100) * (anfragen.verwendet.Count + anfragen.abgelehnt.Count)); i++) {
+            for (int i = 0; i < (((float)percentageRejected / 100) * (anfragen.verwendet.Count + anfragen.abgelehnt.Count)); i++) {
                 int rnd1 = rnd.Next(anfragen.verwendet.Count);
                 anfragen.abgelehnt.Add(anfragen.verwendet[rnd1]);
                 anfragen.verwendet.RemoveAt(rnd1);
             }
-            metaToSave.Add("Positioning: setRandomPositions2(" + anteilAbgelehnt + ")");
+            metaToSave.Add("Positioning: setRandomPositions2(" + percentageRejected + ")");
         }
 
         //sorted&&optimalpos O(n)=cloneList + streetLength*gesamtdauer + anfragen.Count*log(anfragen.Count) + anfragen.Count*(findFreePositions5+findBestPosition5+dauer*länge) = 10^4 + anfragen.Count*log(anfragen.Count) + anfragen.Count*(10^7)
@@ -94,7 +96,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             anfragen.verwendet.Clear(); anfragen.abgelehnt.Clear();
 
             if (state.sorted) {
-                if (state.comparer5) { anfragenLoc.verwendet.Sort(compareByRent5); }
+                if (state.comparer5) { anfragenLoc.verwendet.Sort(compareByLength5); }
                 else { anfragenLoc.verwendet.Sort(compareByRent4); }
             }
             foreach (Anfrage afr in anfragenLoc.verwendet) {
@@ -132,7 +134,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             int bestEnergy = energyChart(currentAnfragen.verwendet);
             besteVerteilung = currentAnfragen;
 
-            for (int i = 0; i < durchläufe; i++) {
+            for (int i = 0; i < runs; i++) {
                 newAnfragen = moveType.del(newAnfragen, temp); //variabel
                 int newEnergy = energyType.del(newAnfragen.verwendet, temp);//variabel
                 logToSave[logToSave.Count - 1] += " " + newEnergy;
@@ -152,7 +154,7 @@ namespace BwInf_39._2._1_Flohmarkt {
                 }
                 energies.Add(energyChart(currentAnfragen.verwendet));
                 overlaps.Add(sumOverlap(currentAnfragen.verwendet).anzahl);
-                temp *= verkleinerungsrate;//200000, 130, 0.999972 //70000,74,0.99997 //70000,23,0.99994
+                temp *= tempDecreaseRate;//200000, 130, 0.999972 //70000,74,0.99997 //70000,23,0.99994
             }
 
             Console.WriteLine("done");
@@ -168,7 +170,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) move1((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp) {
             int index = rnd.Next(anfragen.verwendet.Count());
             int x = rnd.Next(streetLength - anfragen.verwendet[index].länge + 1) - anfragen.verwendet[index].position;
-            int move = (int)(x * (1 - temp / startTemperature));
+            int move = (int)(x * (temp / startTemperature));
             move = (move == 0) ? ((x > 0) ? +1 : -1) : move;
             anfragen.verwendet[index].position += move;
             return (anfragen.verwendet, anfragen.abgelehnt);
@@ -213,12 +215,12 @@ namespace BwInf_39._2._1_Flohmarkt {
                 int index = rnd.Next(anfragen.verwendet.Count());
                 int x = rnd.Next(streetLength - anfragen.verwendet[index].länge + 1) - anfragen.verwendet[index].position;
                 int move = x;
-                //move = (int)(move * (1 - temp / startTemperature)); 
+                move = (int)(move * (temp / startTemperature)); 
                 move = (move == 0) ? ((x > 0) ? +1 : -1) : move;
                 List<int> freePositions = findFreePositions5(unoccupiedFields, anfragen.verwendet[index]);
                 if (freePositions.Count > 0) {
                     unoccupiedFields = setAfrUnoccupiedFields(unoccupiedFields, anfragen.verwendet[index], true);
-                    anfragen.verwendet[index].position = freePositions[findClosestValue4(anfragen.verwendet[index].position + move, freePositions)];
+                    anfragen.verwendet[index].position = freePositions[findClosestValue4(anfragen.verwendet[index].position + move, freePositions)]; //kleinere Sprünge bei niedrigerer Temperatur
                     unoccupiedFields = setAfrUnoccupiedFields(unoccupiedFields, anfragen.verwendet[index], false);
                 }
                 logToSave.Add("verschiebe");
@@ -300,13 +302,20 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// <returns>-rent + n*overlap</returns>
         public int energy(List<Anfrage> anfragenLocal, double temperatur) {
             int energy = sumRent(anfragenLocal);
-            energy += sumOverlap(anfragenLocal).summe * (int)(((temperatur / startTemperature) * 20) + 1);// * (int)(((temperatur / startTemperature) * 20) + 1); //Überschneidung wird "wichtiger", je größer die Temperatur wird
+            energy += sumOverlap(anfragenLocal).summe * (int)((1-(temperatur / startTemperature) * 20) + 1);// * (int)(((temperatur / startTemperature) * 20) + 1); //Überschneidung wird "wichtiger", je größer die Temperatur wird
+            foreach (Anfrage afr in anfragenLocal) { //border überschreitung prüfen
+                foreach (int border in borderPos) {
+                    if (afr.position < border && afr.position + afr.länge > border) {
+                        energy += 2 * afr.länge * afr.mietdauer;
+                    }
+                }
+            }
             return energy;
         }
 
         //O(n)=anfragen.Count*checkifOverlap = anfragen.Count^2
         /// <summary>
-        /// - (rent aller Umfragen die sich nicht überschneiden)
+        /// - (rent aller Anfragen die sich nicht überschneiden)
         /// </summary>
         /// <param name="anfragenLocal"></param>
         /// <returns></returns>
@@ -347,7 +356,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         /**<summary>determines further actions (plot energy distribution, save data)</summary>
          **/
-        public void finish() {
+        public void printSaveResult() {
             Console.WriteLine("\nLETZTE VERTEILUNG");
             printEnding(output.letzteVerteilung);
             Console.WriteLine("\nBESTE VERTEILUNG");
@@ -425,9 +434,9 @@ namespace BwInf_39._2._1_Flohmarkt {
             string filename = number + " savedMeta " + programStartTime + ".csv";
             StreamWriter txt = new StreamWriter(filename);
             txt.WriteLine("SIMANN META");
-            txt.WriteLine("Anzahl Durchläufe: " + durchläufe);
+            txt.WriteLine("Anzahl Durchläufe: " + runs);
             txt.WriteLine("Starttemperatur: " + startTemperature);
-            txt.WriteLine("Verkleinerungsrate: " + verkleinerungsrate);
+            txt.WriteLine("Verkleinerungsrate: " + tempDecreaseRate);
             txt.WriteLine();
             txt.WriteLine("BESTE VERTEILUNG");
             txt.WriteLine("Anzahl Anfragen: " + (besteVerteilung.verwendet.Count + besteVerteilung.abgelehnt.Count));
@@ -544,7 +553,7 @@ namespace BwInf_39._2._1_Flohmarkt {
                     bool horizontalPosition = true;
                     for (int j = 0; j < afr.länge; j++) {
                         bool vertikalPosition = true;
-                        for (int y = afr.mietbeginn - startzeit; y < afr.mietende - startzeit; y++) {
+                        for (int y = afr.mietbeginn - starttime; y < afr.mietende - starttime; y++) {
                             if (unoccupiedFieldsLoc[x + j, y] == false) { vertikalPosition = false; break; }
                         }
                         if (vertikalPosition == false) { horizontalPosition = false; x += j; break; }
@@ -592,7 +601,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             return 0;
         }
 
-        private static int compareByRent5(Anfrage x, Anfrage y) {
+        private static int compareByLength5(Anfrage x, Anfrage y) {
             int rentX = x.mietdauer * x.länge;
             int rentY = y.mietdauer * y.länge;
             if (x.mietdauer > y.mietdauer) { return -1; } else if (x.mietdauer < y.mietdauer) { return +1; } else if (x.länge > y.länge) { return -1; } else if (x.länge < y.länge) { return +1; }
@@ -610,7 +619,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// <returns></returns>
         private (int links, int rechts, int oben, int unten) getSpaceAround5(bool[,] unoccupiedFieldsLoc, Anfrage afr, int position) {
             int links = 0;
-            for (int i = afr.mietbeginn - startzeit; i < afr.mietende - startzeit; i++) {
+            for (int i = afr.mietbeginn - starttime; i < afr.mietende - starttime; i++) {
                 for (int j = position - 1; j >= 0; j--) {
                     if (unoccupiedFieldsLoc[j, i] == false) { break; }
                     links++;
@@ -618,7 +627,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             }
 
             int rechts = 0;
-            for (int i = afr.mietbeginn - startzeit; i < afr.mietende - startzeit; i++) {
+            for (int i = afr.mietbeginn - starttime; i < afr.mietende - starttime; i++) {
                 for (int j = position + afr.länge; j < streetLength; j++) {
                     if (unoccupiedFieldsLoc[j, i] == false) { break; }
                     rechts++;
@@ -627,7 +636,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 
             int oben = 0;
             for (int i = position; i < position + afr.länge; i++) {
-                for (int j = afr.mietbeginn - startzeit - 1; j >= 0; j--) {
+                for (int j = afr.mietbeginn - starttime - 1; j >= 0; j--) {
                     if (unoccupiedFieldsLoc[i, j] == false) { break; }
                     oben++;
                 }
@@ -635,7 +644,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 
             int unten = 0;
             for (int i = position; i < position + afr.länge; i++) {
-                for (int j = afr.mietende - startzeit; j < duration; j++) {
+                for (int j = afr.mietende - starttime; j < duration; j++) {
                     if (unoccupiedFieldsLoc[i, j] == false) { break; }
                     unten++;
                 }
@@ -676,7 +685,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             if (minStartTime + maxDauer > maxEndTime) { Console.WriteLine("invalid input (minStartTime+dauer > maxEndTime)"); return; }
             if (maxDauer * maxLänge > maxKosten) { Console.WriteLine("invalid input (länge+dauer > maxKosten)"); return; }
             if (maxLänge > streetLength) { Console.WriteLine("invalid input (maxLänge > streetLength)"); return; }
-            if (maxEndTime > startzeit + duration) { Console.WriteLine("invalid input (maxEndTime> startzeit + duration)"); return; }
+            if (maxEndTime > starttime + duration) { Console.WriteLine("invalid input (maxEndTime> startzeit + duration)"); return; }
 
             List<(List<int> positions, Anfrage afr)> positions = new List<(List<int>, Anfrage)>();
             for (int länge = minLänge; länge < maxLänge; länge++) {
@@ -708,20 +717,20 @@ namespace BwInf_39._2._1_Flohmarkt {
         public void analyseResults() {
             Console.WriteLine("\nANALYSE RESULT:");
             double carThreshold = 5;//ab wievielen Metern Stand braucht man ein zusätzlichen Autostellplatz?
-            int hoursBetweenToiletUse = 2;// alle wieviel Stunden ghet man durchschnittlich auf Toilette? (abhängig von Wetter, Essensangebot,...)
+            int hoursBetweenToiletUse = 2;// alle wieviel Stunden geht man durchschnittlich auf Toilette? (abhängig von Wetter, Essensangebot,...)
             int[] parkingSpots = new int[duration];
             int[] anfragenNum = new int[duration];
             int[] toiletUsesPerHour = new int[duration];
 
-            for (int t = startzeit; t < startzeit + duration; t++) {
+            for (int t = starttime; t < starttime + duration; t++) {
                 foreach (Anfrage afr in anfragen.verwendet) {
                     if (afr.mietbeginn <= t && afr.mietende > t) {
-                        parkingSpots[t - startzeit] += (int)Math.Ceiling((double)afr.länge / (double)carThreshold);
-                        anfragenNum[t - startzeit]++;
+                        parkingSpots[t - starttime] += (int)Math.Ceiling((double)afr.länge / (double)carThreshold);
+                        anfragenNum[t - starttime]++;
                     }
 
                     if (t - afr.mietbeginn >= 0 && (t - afr.mietbeginn) % hoursBetweenToiletUse == 0) {
-                        toiletUsesPerHour[t - startzeit]++;
+                        toiletUsesPerHour[t - starttime]++;
                     }
                 }
             }
@@ -729,10 +738,10 @@ namespace BwInf_39._2._1_Flohmarkt {
             printArray(parkingSpots, "parking spots per hour");
 
             int[] newCarsPerHour = new int[duration];
-            for (int t = startzeit; t < startzeit + duration; t++) {
+            for (int t = starttime; t < starttime + duration; t++) {
                 foreach (Anfrage afr in anfragen.verwendet) {
                     if (afr.mietbeginn == t) {
-                        newCarsPerHour[t - startzeit] += (int)Math.Ceiling((double)afr.länge / (double)carThreshold);
+                        newCarsPerHour[t - starttime] += (int)Math.Ceiling((double)afr.länge / (double)carThreshold);
                     }
                 }
             }
@@ -757,7 +766,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             string firstLine = "    ";
             string secondLine = "    ";
             for (int i = 0; i < array.Length; i++) {
-                firstLine += "\t" + (i + startzeit);
+                firstLine += "\t" + (i + starttime);
                 secondLine += "\t" + array[i];
             }
             Console.WriteLine(firstLine);
@@ -765,7 +774,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         }
 
         private bool[,] setAfrUnoccupiedFields(bool[,] unoccupiedFieldsLoc, Anfrage afr, bool boolVal) {
-            for (int i = afr.mietbeginn - startzeit; i < afr.mietende - startzeit; i++) {
+            for (int i = afr.mietbeginn - starttime; i < afr.mietende - starttime; i++) {
                 for (int j = afr.position; j < afr.position + afr.länge; j++) {
                     unoccupiedFieldsLoc[j, i] = boolVal;
                 }
