@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace BwInf_39._2._1_Flohmarkt {
     class simulatedAnnealing {
-        public (List<Registration> accepted, List<Registration> declined) registrations;
+        public (List<Registration> accepted, List<Registration> rejected) registrations;
 
         readonly int streetLength;
         readonly int duration;
@@ -28,7 +28,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         public (EnDel del, string name) energyType;
         public (moveDel del, string name) moveType;
 
-        public (int bestEnergy, List<int> energies, List<int> overlaps, (List<Registration> accepted, List<Registration> declined) lastDistribution, (List<Registration> accepted, List<Registration> declined) bestDistribution) output;
+        public (int bestEnergy, List<int> energies, List<int> overlaps, (List<Registration> accepted, List<Registration> rejected) lastDistribution, (List<Registration> accepted, List<Registration> rejected) bestDistribution) output;
 
         Random rnd = new Random();
 
@@ -36,7 +36,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         public simulatedAnnealing(int number, List<Registration> registrations, int streetLength = 1000, int starttime = 8, int duration = 10, int startTemperature = 25, int durchläufe = 70000, double tempDecreaseRate = 0.99995) {
             this.registrations.accepted = registrations;
-            this.registrations.declined = new List<Registration>();
+            this.registrations.rejected = new List<Registration>();
             this.dataSetNumber = number;
             this.streetLength = streetLength;
             this.duration = duration;
@@ -68,16 +68,16 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         //O(registrations.Count+registrations.Count^2)
         /// <summary>
-        /// setzt zufällige Positionen, auch auf declined Liste
+        /// setzt zufällige Positionen, auch auf rejected Liste
         /// </summary>
         /// <param name="percentageRejected">anteil in Prozent der auf die Warteliste gesetzten</param>
         public void setRandomPositions2(int percentageRejected) {
             foreach (Registration a in registrations.accepted) {
                 a.position = rnd.Next(streetLength - a.rentLength + 1);
             }
-            for (int i = 0; i < (((float)percentageRejected / 100) * (registrations.accepted.Count + registrations.declined.Count)); i++) {
+            for (int i = 0; i < (((float)percentageRejected / 100) * (registrations.accepted.Count + registrations.rejected.Count)); i++) {
                 int rnd1 = rnd.Next(registrations.accepted.Count);
-                registrations.declined.Add(registrations.accepted[rnd1]);
+                registrations.rejected.Add(registrations.accepted[rnd1]);
                 registrations.accepted.RemoveAt(rnd1);
             }
             metaToSave.Add("Positioning: setRandomPositions2(" + percentageRejected + ")");
@@ -88,12 +88,12 @@ namespace BwInf_39._2._1_Flohmarkt {
         //sorted O(cloneList + streetLength*gesamtdauer + registrations.Count*log(registrations.Count) + registrations.Count*(findFreePositions5+dauer*länge) =  10^4 + registrations.Count*log(registrations.Count) + registrations.Count*(10^3*reg.länge*reg.dauer)
         //O(cloneList + streetLength*gesamtdauer + registrations.Count*(findFreePositions5+dauer*länge) = 10^4 + registrations.Count*(10^3*reg.länge*reg.dauer))
         /// <summary>
-        /// setzt Positionen, auch auf declined Liste; keine Überschneidungen zugelassen; nach Wunsch: - fängt bei sperrigen registrations an (nach Wunsch gilt A oder Dauer als sperrig)  - immer an Position, die am wenigsten freie Positionen einschließt
+        /// setzt Positionen, auch auf rejected Liste; keine Überschneidungen zugelassen; nach Wunsch: - fängt bei sperrigen registrations an (nach Wunsch gilt A oder Dauer als sperrig)  - immer an Position, die am wenigsten freie Positionen einschließt
         /// </summary>
         /// <param name="state">Konfiguration; ´sorted: Liste wird vor positionierung sortiert; compare5: compareByRent5 wird als comparer accepted (standard ist compareByRent4); optimal: Anmeldung wird an optimaler Position positioniert, ansonsten an zufälliger Position</param>
         public void setPositions5((bool sorted, bool comparer5, bool optimalPos) state) {
-            (List<Registration> accepted, List<Registration> declined) registrationsLoc = cloneLists(registrations);
-            registrations.accepted.Clear(); registrations.declined.Clear();
+            (List<Registration> accepted, List<Registration> rejected) registrationsLoc = cloneLists(registrations);
+            registrations.accepted.Clear(); registrations.rejected.Clear();
 
             if (state.sorted) {
                 if (state.comparer5) { registrationsLoc.accepted.Sort(compareByLength5); }
@@ -111,7 +111,7 @@ namespace BwInf_39._2._1_Flohmarkt {
                 }
                 else {
                     reg.position = -1;
-                    registrations.declined.Add(reg);
+                    registrations.rejected.Add(reg);
                 }
             }
             output = (energyChart(registrations.accepted), new List<int>(), new List<int>(), registrations, registrations);
@@ -127,9 +127,9 @@ namespace BwInf_39._2._1_Flohmarkt {
             int currentEnergy = energyType.del(registrations.accepted, startTemperature);//variabel
             List<int> energies = new List<int>();
             List<int> overlaps = new List<int>();
-            (List<Registration> accepted, List<Registration> declined) bestDistribution; bestDistribution.accepted = new List<Registration>(); bestDistribution.declined = new List<Registration>();
-            (List<Registration> accepted, List<Registration> declined) currentRegistrations; currentRegistrations.accepted = new List<Registration>(); currentRegistrations.declined = new List<Registration>();
-            (List<Registration> accepted, List<Registration> declined) newRegistrations; newRegistrations.accepted = new List<Registration>(); newRegistrations.declined = new List<Registration>();
+            (List<Registration> accepted, List<Registration> rejected) bestDistribution; bestDistribution.accepted = new List<Registration>(); bestDistribution.rejected = new List<Registration>();
+            (List<Registration> accepted, List<Registration> rejected) currentRegistrations; currentRegistrations.accepted = new List<Registration>(); currentRegistrations.rejected = new List<Registration>();
+            (List<Registration> accepted, List<Registration> rejected) newRegistrations; newRegistrations.accepted = new List<Registration>(); newRegistrations.rejected = new List<Registration>();
             newRegistrations = cloneLists(registrations); currentRegistrations = cloneLists(registrations);
             int bestEnergy = energyChart(currentRegistrations.accepted);
             bestDistribution = currentRegistrations;
@@ -142,7 +142,7 @@ namespace BwInf_39._2._1_Flohmarkt {
                 if (newEnergy <= currentEnergy || rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)) {//|| rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)
                     currentEnergy = newEnergy;
                     logToSave[logToSave.Count - 1] += " " + sumOverlap(newRegistrations.accepted).anzahl; logToSave.Add("");
-                    //Console.WriteLine(i + " : " + currentEnergy + " \t" + newRegistrations.accepted.Count + " " + newRegistrations.declined.Count + "  " + sumOverlap(newRegistrations.accepted).anzahl + " Üs");
+                    //Console.WriteLine(i + " : " + currentEnergy + " \t" + newRegistrations.accepted.Count + " " + newRegistrations.rejected.Count + "  " + sumOverlap(newRegistrations.accepted).anzahl + " Üs");
                     currentRegistrations = cloneLists(newRegistrations);
                     if (sumOverlap(currentRegistrations.accepted).anzahl == 0 && energyChart(currentRegistrations.accepted) < bestEnergy) {
                         bestEnergy = energyChart(currentRegistrations.accepted);
@@ -167,20 +167,20 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// <summary>
         /// verschieben: weiter weg wird unwahrscheinlicher je kleiner temp wird (reg.pos wird als koordinatenursprung angenommen; move=rnd*(temp/startTemp))
         /// </summary>
-        public (List<Registration> accepted, List<Registration> declined) move1((List<Registration> accepted, List<Registration> declined) registrations, double temp) {
+        public (List<Registration> accepted, List<Registration> rejected) move1((List<Registration> accepted, List<Registration> rejected) registrations, double temp) {
             int index = rnd.Next(registrations.accepted.Count());
             int x = rnd.Next(streetLength - registrations.accepted[index].rentLength + 1) - registrations.accepted[index].position;
             int move = (int)(x * (temp / startTemperature));
             move = (move == 0) ? ((x > 0) ? +1 : -1) : move;
             registrations.accepted[index].position += move;
-            return (registrations.accepted, registrations.declined);
+            return (registrations.accepted, registrations.rejected);
         }
 
         //O(registrations.count)
         /// <summary>
         ///verschieben (wie move1) und swappen
         /// </summary>
-        public (List<Registration> accepted, List<Registration> declined) move2((List<Registration> accepted, List<Registration> declined) registrations, double temp) {
+        public (List<Registration> accepted, List<Registration> rejected) move2((List<Registration> accepted, List<Registration> rejected) registrations, double temp) {
             int rnd1 = rnd.Next(100);
             if (rnd1 < 50 && registrations.accepted.Count > 0) { //verschiebe
                 registrations = move1(registrations, temp);
@@ -188,28 +188,28 @@ namespace BwInf_39._2._1_Flohmarkt {
             }
             else {// swappe
                 int rnd2 = rnd.Next(100);
-                if ((rnd2 < 50 || registrations.declined.Count == 0) && registrations.accepted.Count > 0) {//reinswap
+                if ((rnd2 < 50 || registrations.rejected.Count == 0) && registrations.accepted.Count > 0) {//reinswap
                     int index = rnd.Next(registrations.accepted.Count);
-                    registrations.declined.Add(registrations.accepted[index]);
+                    registrations.rejected.Add(registrations.accepted[index]);
                     registrations.accepted.RemoveAt(index);
-                    logToSave.Add("swap->declined");
+                    logToSave.Add("swap->rejected");
                 }
                 else {//rausswap
-                    int index = rnd.Next(registrations.declined.Count);
-                    registrations.declined[index].position = rnd.Next(streetLength - registrations.declined[index].rentLength + 1);
-                    registrations.accepted.Add(registrations.declined[index]);
-                    registrations.declined.RemoveAt(index);
+                    int index = rnd.Next(registrations.rejected.Count);
+                    registrations.rejected[index].position = rnd.Next(streetLength - registrations.rejected[index].rentLength + 1);
+                    registrations.accepted.Add(registrations.rejected[index]);
+                    registrations.rejected.RemoveAt(index);
                     logToSave.Add("swap->accepted");
                 }
             }
-            return (registrations.accepted, registrations.declined);
+            return (registrations.accepted, registrations.rejected);
         }
 
         //O(findFreePositions4+registrations.count= 10^6+10^3*registrations.Count) = O(registrations.count*reg.länge+10^3*reg.länge)
         /// <summary>
         ///verschieben und swappen ohne Überschneidungen (nur an Position wo sicher keine Überschneidungen auftreten)
         /// </summary>
-        public (List<Registration> accepted, List<Registration> declined) move4((List<Registration> accepted, List<Registration> declined) registrations, double temp) {
+        public (List<Registration> accepted, List<Registration> rejected) move4((List<Registration> accepted, List<Registration> rejected) registrations, double temp) {
             int rnd1 = rnd.Next(100);
             if (rnd1 < 50 && registrations.accepted.Count > 0) { //verschiebe //variabel
                 int index = rnd.Next(registrations.accepted.Count());
@@ -227,26 +227,26 @@ namespace BwInf_39._2._1_Flohmarkt {
             }
             else {// swappe
                 int rnd2 = rnd.Next(100);
-                if ((rnd2 < 50 || registrations.declined.Count == 0) && registrations.accepted.Count > 0) {//reinswap
+                if ((rnd2 < 50 || registrations.rejected.Count == 0) && registrations.accepted.Count > 0) {//reinswap
                     int index = rnd.Next(registrations.accepted.Count);
-                    registrations.declined.Add(registrations.accepted[index]);
+                    registrations.rejected.Add(registrations.accepted[index]);
                     registrations.accepted.RemoveAt(index);
                     unoccupiedFields = setRegUnoccupiedFields(unoccupiedFields, registrations.accepted[index], true);
-                    logToSave.Add("swap->declined");
+                    logToSave.Add("swap->rejected");
                 }
                 else {//rausswap
-                    int index = rnd.Next(registrations.declined.Count);
+                    int index = rnd.Next(registrations.rejected.Count);
                     List<int> freePositions = findFreePositions5(unoccupiedFields, registrations.accepted[index]);
                     if (freePositions.Count > 0) {
-                        registrations.declined[index].position = freePositions[rnd.Next(freePositions.Count)];
-                        registrations.accepted.Add(registrations.declined[index]);
-                        registrations.declined.RemoveAt(index);
+                        registrations.rejected[index].position = freePositions[rnd.Next(freePositions.Count)];
+                        registrations.accepted.Add(registrations.rejected[index]);
+                        registrations.rejected.RemoveAt(index);
                         unoccupiedFields = setRegUnoccupiedFields(unoccupiedFields, registrations.accepted[index], false);
                         logToSave.Add("swap->accepted");
                     }
                 }
             }
-            return (registrations.accepted, registrations.declined);
+            return (registrations.accepted, registrations.rejected);
         }
 
         #endregion
@@ -267,10 +267,10 @@ namespace BwInf_39._2._1_Flohmarkt {
         }
 
         //O(registrations.Count)
-        private int sumAllRent((List<Registration> accepted, List<Registration> declined) registrationsLoc) {
+        private int sumAllRent((List<Registration> accepted, List<Registration> rejected) registrationsLoc) {
             List<Registration> mergedRegistrations = new List<Registration>();
             foreach (Registration reg in registrationsLoc.accepted) { mergedRegistrations.Add(reg.clone()); }
-            mergedRegistrations.AddRange(registrationsLoc.declined);
+            mergedRegistrations.AddRange(registrationsLoc.rejected);
             return sumRent(mergedRegistrations);
         }
 
@@ -403,8 +403,8 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// prints infos (sumOverlap.Anzahl)
         /// </summary>
         /// <param name="registrationsLoc"></param>
-        public void printEnding((List<Registration> accepted, List<Registration> declined) registrationsLoc) {
-            Console.WriteLine(registrationsLoc.accepted.Count + " accepted;  " + registrationsLoc.declined.Count + " declined");
+        public void printEnding((List<Registration> accepted, List<Registration> rejected) registrationsLoc) {
+            Console.WriteLine(registrationsLoc.accepted.Count + " accepted;  " + registrationsLoc.rejected.Count + " rejected");
             Console.WriteLine(sumOverlap(registrationsLoc.accepted).anzahl + " Überschneidungen");
             Console.WriteLine("Mietsumme aller Verwendeten: " + sumRent(registrationsLoc.accepted) + ";   Mietsumme - Überschneidungen: " + energyChart(registrationsLoc.accepted)); ;
         }
@@ -413,14 +413,14 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// speichert ergebniss (Positionen der Anmeldungen)
         /// </summary>
         /// <param name="registrations"></param>
-        public void saveResult((List<Registration> accepted, List<Registration> declined) registrations) {
+        public void saveResult((List<Registration> accepted, List<Registration> rejected) registrations) {
             string filename = dataSetNumber + " savedResult " + programStartTime + ".csv";
             StreamWriter txt = new StreamWriter(filename);
             txt.WriteLine("Mietbegin Mietende Länge ID position");
             foreach (var reg in registrations.accepted) {
                 txt.WriteLine("{0} {1} {2} {3} {4}", reg.rentStart, reg.rentEnd, reg.rentLength, reg.id, reg.position);
             }
-            foreach (var reg in registrations.declined) {
+            foreach (var reg in registrations.rejected) {
                 txt.WriteLine("{0} {1} {2} {3} -1", reg.rentStart, reg.rentEnd, reg.rentLength, reg.id);
             }
             txt.Close(); txt.Dispose();
@@ -430,7 +430,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// speichert meta daten (durchläufe, starttemperatur, ... und die energien vom simAnn im Zeitverlauf) 
         /// </summary>
         /// <param name="energies"></param>
-        public void saveMeta(List<int> energies, List<int> overlaps, (List<Registration> accepted, List<Registration> declined) bestDistribution, int bestEnergy) {
+        public void saveMeta(List<int> energies, List<int> overlaps, (List<Registration> accepted, List<Registration> rejected) bestDistribution, int bestEnergy) {
             string filename = dataSetNumber + " savedMeta " + programStartTime + ".csv";
             StreamWriter txt = new StreamWriter(filename);
             txt.WriteLine("SIMANN META");
@@ -439,8 +439,8 @@ namespace BwInf_39._2._1_Flohmarkt {
             txt.WriteLine("Verkleinerungsrate: " + tempDecreaseRate);
             txt.WriteLine();
             txt.WriteLine("BESTE VERTEILUNG");
-            txt.WriteLine("Anzahl Anmeldungen: " + (bestDistribution.accepted.Count + bestDistribution.declined.Count));
-            txt.WriteLine("   davon declined: " + bestDistribution.declined.Count);
+            txt.WriteLine("Anzahl Anmeldungen: " + (bestDistribution.accepted.Count + bestDistribution.rejected.Count));
+            txt.WriteLine("   davon rejected: " + bestDistribution.rejected.Count);
             txt.WriteLine("Anzahl Überschneidungen: " + sumOverlap(bestDistribution.accepted).anzahl);
             txt.WriteLine("Energie: " + bestEnergy);
             txt.WriteLine();
@@ -474,14 +474,14 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         //O(registrations.Count
         /// <summary>
-        /// gibt ein geklontes (Wert-kopiertes) Anmeldungen Tuple (accepted, declined) zurück.
+        /// gibt ein geklontes (Wert-kopiertes) Anmeldungen Tuple (accepted, rejected) zurück.
         /// </summary>
         /// <param name="registrationsLoc">zu klonendes Tuple</param>
         /// <returns></returns>
-        public (List<Registration> accepted, List<Registration> declined) cloneLists((List<Registration> accepted, List<Registration> declined) registrationsLoc) {
-            (List<Registration> accepted, List<Registration> declined) returnRegistrations; returnRegistrations.accepted = new List<Registration>(); returnRegistrations.declined = new List<Registration>();
+        public (List<Registration> accepted, List<Registration> rejected) cloneLists((List<Registration> accepted, List<Registration> rejected) registrationsLoc) {
+            (List<Registration> accepted, List<Registration> rejected) returnRegistrations; returnRegistrations.accepted = new List<Registration>(); returnRegistrations.rejected = new List<Registration>();
             foreach (Registration reg in registrationsLoc.accepted) { returnRegistrations.accepted.Add(reg.clone()); }
-            foreach (Registration reg in registrationsLoc.declined) { returnRegistrations.declined.Add(reg.clone()); }
+            foreach (Registration reg in registrationsLoc.rejected) { returnRegistrations.rejected.Add(reg.clone()); }
             return returnRegistrations;
         }
 
@@ -783,7 +783,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         }
 
         public delegate int EnDel(List<Registration> registrationsLoc, double temperature);
-        public delegate (List<Registration> accepted, List<Registration> declined) moveDel((List<Registration> accepted, List<Registration> declined) registrations, double temp);
+        public delegate (List<Registration> accepted, List<Registration> rejected) moveDel((List<Registration> accepted, List<Registration> rejected) registrations, double temp);
 
         #endregion
     }
