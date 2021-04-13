@@ -5,36 +5,36 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace BwInf_39._2._1_Flohmarkt {
-    class Anfrage {
+    class Registration {
         public int id;
-        public int mietbeginn;
-        public int mietende;
-        public int mietdauer;
-        public int länge;
+        public int rentStart;
+        public int rentEnd;
+        public int rentDuration;
+        public int rentLength;
         public int position;
 
-        public Anfrage(int id, int mietbeginn, int mietende, int länge, int position) {
+        public Registration(int id, int rentStart, int rentEnd, int rentLength, int position) {
             this.id = id;
-            this.mietbeginn = mietbeginn;
-            this.mietende = mietende;
-            this.länge = länge;
-            mietdauer = mietende - mietbeginn;
+            this.rentStart = rentStart;
+            this.rentEnd = rentEnd;
+            this.rentLength = rentLength;
+            rentDuration = rentEnd - rentStart;
             this.position = position;
         }
 
-        public int overlap(Anfrage afr2) {
-            int xOverlap = Math.Min(position + länge, afr2.position + afr2.länge) - Math.Max(position, afr2.position);
-            int yOverlap = Math.Min(mietende, afr2.mietende) - Math.Max(mietbeginn, afr2.mietbeginn);
+        public int overlap(Registration reg2) {
+            int xOverlap = Math.Min(position + rentLength, reg2.position + reg2.rentLength) - Math.Max(position, reg2.position);
+            int yOverlap = Math.Min(rentEnd, reg2.rentEnd) - Math.Max(rentStart, reg2.rentStart);
             if (xOverlap > 0 && yOverlap > 0) {
                 return xOverlap * yOverlap;
             }
             else { return 0; }
         }
 
-        public Anfrage clone() { return new Anfrage(this.id, this.mietbeginn, this.mietende, this.länge, this.position); }
+        public Registration clone() { return new Registration(this.id, this.rentStart, this.rentEnd, this.rentLength, this.position); }
 
         public void print() {
-            Console.WriteLine("{0}: from {1} to {2} at position {3} for {4} tables", id, mietbeginn, mietende, position, länge);
+            Console.WriteLine("{0}: from {1} to {2} at position {3} for {4} tables", id, rentStart, rentEnd, position, rentLength);
         }
     }
 }

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace BwInf_39._2._1_Flohmarkt {
     class simulatedAnnealing {
-        public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen;
+        public (List<Registration> accepted, List<Registration> declined) registrations;
 
         readonly int streetLength;
         readonly int duration;
@@ -17,7 +17,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         private bool[,] unoccupiedFields; //nur für Varianten ohne Überschneidungen erlaubt/brauchbar
 
-        readonly int number;
+        readonly int dataSetNumber;
         readonly string programStartTime;
         public List<string> metaToSave = new List<string>();
         public List<string> logToSave = new List<string>();
@@ -28,16 +28,16 @@ namespace BwInf_39._2._1_Flohmarkt {
         public (EnDel del, string name) energyType;
         public (moveDel del, string name) moveType;
 
-        public (int bestEnergy, List<int> energies, List<int> overlaps, (List<Anfrage> verwendet, List<Anfrage> abgelehnt) letzteVerteilung, (List<Anfrage> verwendet, List<Anfrage> abgelehnt) besteVerteilung) output;
+        public (int bestEnergy, List<int> energies, List<int> overlaps, (List<Registration> accepted, List<Registration> declined) lastDistribution, (List<Registration> accepted, List<Registration> declined) bestDistribution) output;
 
         Random rnd = new Random();
 
         #region constructors
 
-        public simulatedAnnealing(int number, List<Anfrage> anfragen, int streetLength = 1000, int starttime = 8, int duration = 10, int startTemperature = 25, int durchläufe = 70000, double tempDecreaseRate = 0.99995) {
-            this.anfragen.verwendet = anfragen;
-            this.anfragen.abgelehnt = new List<Anfrage>();
-            this.number = number;
+        public simulatedAnnealing(int number, List<Registration> registrations, int streetLength = 1000, int starttime = 8, int duration = 10, int startTemperature = 25, int durchläufe = 70000, double tempDecreaseRate = 0.99995) {
+            this.registrations.accepted = registrations;
+            this.registrations.declined = new List<Registration>();
+            this.dataSetNumber = number;
             this.streetLength = streetLength;
             this.duration = duration;
             this.starttime = starttime;
@@ -58,7 +58,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         #region setPositions
 
-        //O(n)=anfragen.Count
+        //O(registrations.Count)
         /// <summary>
         /// setzt zufällige Positionen
         /// </summary>
@@ -66,226 +66,226 @@ namespace BwInf_39._2._1_Flohmarkt {
             setRandomPositions2(0);
         }
 
-        //O(n)=anfragen.Count+anfragen.Count^2
+        //O(registrations.Count+registrations.Count^2)
         /// <summary>
-        /// setzt zufällige Positionen, auch auf abgelehnt Liste
+        /// setzt zufällige Positionen, auch auf declined Liste
         /// </summary>
         /// <param name="percentageRejected">anteil in Prozent der auf die Warteliste gesetzten</param>
         public void setRandomPositions2(int percentageRejected) {
-            foreach (Anfrage a in anfragen.verwendet) {
-                a.position = rnd.Next(streetLength - a.länge + 1);
+            foreach (Registration a in registrations.accepted) {
+                a.position = rnd.Next(streetLength - a.rentLength + 1);
             }
-            for (int i = 0; i < (((float)percentageRejected / 100) * (anfragen.verwendet.Count + anfragen.abgelehnt.Count)); i++) {
-                int rnd1 = rnd.Next(anfragen.verwendet.Count);
-                anfragen.abgelehnt.Add(anfragen.verwendet[rnd1]);
-                anfragen.verwendet.RemoveAt(rnd1);
+            for (int i = 0; i < (((float)percentageRejected / 100) * (registrations.accepted.Count + registrations.declined.Count)); i++) {
+                int rnd1 = rnd.Next(registrations.accepted.Count);
+                registrations.declined.Add(registrations.accepted[rnd1]);
+                registrations.accepted.RemoveAt(rnd1);
             }
             metaToSave.Add("Positioning: setRandomPositions2(" + percentageRejected + ")");
         }
 
-        //sorted&&optimalpos O(n)=cloneList + streetLength*gesamtdauer + anfragen.Count*log(anfragen.Count) + anfragen.Count*(findFreePositions5+findBestPosition5+dauer*länge) = 10^4 + anfragen.Count*log(anfragen.Count) + anfragen.Count*(10^7)
-        //sorted&&optimalpos afr O(n)=cloneList + streetLength*gesamtdauer + anfragen.Count*log(anfragen.Count) + anfragen.Count*(findFreePositions5+findBestPosition5+dauer*länge) = 10^4 + anfragen.Count*log(anfragen.Count) + anfragen.Count*(afr.dauer*10^6+afr.länge*10^4)
-        //sorted O(n)=cloneList + streetLength*gesamtdauer + anfragen.Count*log(anfragen.Count) + anfragen.Count*(findFreePositions5+dauer*länge) =  10^4 + anfragen.Count*log(anfragen.Count) + anfragen.Count*(10^3*afr.länge*afr.dauer)
-        //O(n)=cloneList + streetLength*gesamtdauer + anfragen.Count*(findFreePositions5+dauer*länge) = 10^4 + anfragen.Count*(10^3*afr.länge*afr.dauer)
+        //sorted&&optimalpos O(cloneList + streetLength*gesamtdauer + registrations.Count*log(registrations.Count) + registrations.Count*(findFreePositions5+findBestPosition5+dauer*länge) = 10^4 + registrations.Count*log(registrations.Count) + registrations.Count*(10^7)
+        //sorted&&optimalpos reg O(cloneList + streetLength*gesamtdauer + registrations.Count*log(registrations.Count) + registrations.Count*(findFreePositions5+findBestPosition5+dauer*länge) = 10^4 + registrations.Count*log(registrations.Count) + registrations.Count*(reg.dauer*10^6+reg.länge*10^4)
+        //sorted O(cloneList + streetLength*gesamtdauer + registrations.Count*log(registrations.Count) + registrations.Count*(findFreePositions5+dauer*länge) =  10^4 + registrations.Count*log(registrations.Count) + registrations.Count*(10^3*reg.länge*reg.dauer)
+        //O(cloneList + streetLength*gesamtdauer + registrations.Count*(findFreePositions5+dauer*länge) = 10^4 + registrations.Count*(10^3*reg.länge*reg.dauer))
         /// <summary>
-        /// setzt Positionen, auch auf abgelehnt Liste; keine Überschneidungen zugelassen; nach Wunsch: - fängt bei sperrigen Anfragen an (nach Wunsch gilt A oder Dauer als sperrig)  - immer an Position, die am wenigsten freie Positionen einschließt
+        /// setzt Positionen, auch auf declined Liste; keine Überschneidungen zugelassen; nach Wunsch: - fängt bei sperrigen registrations an (nach Wunsch gilt A oder Dauer als sperrig)  - immer an Position, die am wenigsten freie Positionen einschließt
         /// </summary>
-        /// <param name="state">Konfiguration; ´sorted: Liste wird vor positionierung sortiert; compare5: compareByRent5 wird als comparer verwendet (standard ist compareByRent4); optimal: Anfrage wird an optimaler Position positioniert, ansonsten an zufälliger Position</param>
+        /// <param name="state">Konfiguration; ´sorted: Liste wird vor positionierung sortiert; compare5: compareByRent5 wird als comparer accepted (standard ist compareByRent4); optimal: Anmeldung wird an optimaler Position positioniert, ansonsten an zufälliger Position</param>
         public void setPositions5((bool sorted, bool comparer5, bool optimalPos) state) {
-            (List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLoc = cloneLists(anfragen);
-            anfragen.verwendet.Clear(); anfragen.abgelehnt.Clear();
+            (List<Registration> accepted, List<Registration> declined) registrationsLoc = cloneLists(registrations);
+            registrations.accepted.Clear(); registrations.declined.Clear();
 
             if (state.sorted) {
-                if (state.comparer5) { anfragenLoc.verwendet.Sort(compareByLength5); }
-                else { anfragenLoc.verwendet.Sort(compareByRent4); }
+                if (state.comparer5) { registrationsLoc.accepted.Sort(compareByLength5); }
+                else { registrationsLoc.accepted.Sort(compareByRent4); }
             }
-            foreach (Anfrage afr in anfragenLoc.verwendet) {
-                List<int> freePositions = findFreePositions5(unoccupiedFields, afr);
+            foreach (Registration reg in registrationsLoc.accepted) {
+                List<int> freePositions = findFreePositions5(unoccupiedFields, reg);
                 if (freePositions.Count > 0) {
                     if (state.optimalPos) {
-                        afr.position = findBestPosition5(unoccupiedFields, afr, freePositions)[0];
+                        reg.position = findBestPosition5(unoccupiedFields, reg, freePositions)[0];
                     }
-                    else { afr.position = freePositions[rnd.Next(freePositions.Count)]; }
-                    anfragen.verwendet.Add(afr);
-                    unoccupiedFields = setAfrUnoccupiedFields(unoccupiedFields, afr, false);
+                    else { reg.position = freePositions[rnd.Next(freePositions.Count)]; }
+                    registrations.accepted.Add(reg);
+                    unoccupiedFields = setRegUnoccupiedFields(unoccupiedFields, reg, false);
                 }
                 else {
-                    afr.position = -1;
-                    anfragen.abgelehnt.Add(afr);
+                    reg.position = -1;
+                    registrations.declined.Add(reg);
                 }
             }
-            output = (energyChart(anfragen.verwendet), new List<int>(), new List<int>(), anfragen, anfragen);
+            output = (energyChart(registrations.accepted), new List<int>(), new List<int>(), registrations, registrations);
             metaToSave.Add("Positioning: setPositions5 (" + (state.sorted ? "sorted " + (state.comparer5 ? " by compareByRent5; " : "by compareByRent4; ") : "not Sorted; ") + (state.optimalPos ? "optimalPosition)" : "randomPosition)"));
         }
 
         #endregion
 
-        // move4 O(n)=cloneList+energy+durchläufe*(move+energy+cloneList+energyChart) = (afr:) anfragen.Count^2+durchläufe*(10^3*afr.länge+anfragen.Count^2) = (nonafr:) anfragen.Count^2+durchläufe*(10^6+anfragen.Count^2)
-        // move2 O(n)=anfragen.Count^2+durchläufe*(anfragen.Count+2*anfragen.Count^2) = durchläufe*(anfragen.Count^2)
+        // move4 O(cloneList+energy+durchläufe*(move+energy+cloneList+energyChart) = (reg:) registrations.Count^2+durchläufe*(10^3*reg.länge+registrations.Count^2) = (nonreg:) registrations.Count^2+durchläufe*(10^6+registrations.Count^2))
+        // move2 O(registrations.Count^2+durchläufe*(registrations.Count+2*registrations.Count^2) = durchläufe*(registrations.Count^2))
         public void simulate() {
             double temp = startTemperature;
-            int currentEnergy = energyType.del(anfragen.verwendet, startTemperature);//variabel
+            int currentEnergy = energyType.del(registrations.accepted, startTemperature);//variabel
             List<int> energies = new List<int>();
             List<int> overlaps = new List<int>();
-            (List<Anfrage> verwendet, List<Anfrage> abgelehnt) besteVerteilung; besteVerteilung.verwendet = new List<Anfrage>(); besteVerteilung.abgelehnt = new List<Anfrage>();
-            (List<Anfrage> verwendet, List<Anfrage> abgelehnt) currentAnfragen; currentAnfragen.verwendet = new List<Anfrage>(); currentAnfragen.abgelehnt = new List<Anfrage>();
-            (List<Anfrage> verwendet, List<Anfrage> abgelehnt) newAnfragen; newAnfragen.verwendet = new List<Anfrage>(); newAnfragen.abgelehnt = new List<Anfrage>();
-            newAnfragen = cloneLists(anfragen); currentAnfragen = cloneLists(anfragen);
-            int bestEnergy = energyChart(currentAnfragen.verwendet);
-            besteVerteilung = currentAnfragen;
+            (List<Registration> accepted, List<Registration> declined) bestDistribution; bestDistribution.accepted = new List<Registration>(); bestDistribution.declined = new List<Registration>();
+            (List<Registration> accepted, List<Registration> declined) currentRegistrations; currentRegistrations.accepted = new List<Registration>(); currentRegistrations.declined = new List<Registration>();
+            (List<Registration> accepted, List<Registration> declined) newRegistrations; newRegistrations.accepted = new List<Registration>(); newRegistrations.declined = new List<Registration>();
+            newRegistrations = cloneLists(registrations); currentRegistrations = cloneLists(registrations);
+            int bestEnergy = energyChart(currentRegistrations.accepted);
+            bestDistribution = currentRegistrations;
 
             for (int i = 0; i < runs; i++) {
-                newAnfragen = moveType.del(newAnfragen, temp); //variabel
-                int newEnergy = energyType.del(newAnfragen.verwendet, temp);//variabel
+                newRegistrations = moveType.del(newRegistrations, temp); //variabel
+                int newEnergy = energyType.del(newRegistrations.accepted, temp);//variabel
                 logToSave[logToSave.Count - 1] += " " + newEnergy;
                 if (i % 100 == 0) Console.WriteLine(i + "  " + currentEnergy);
                 if (newEnergy <= currentEnergy || rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)) {//|| rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)
                     currentEnergy = newEnergy;
-                    logToSave[logToSave.Count - 1] += " " + sumOverlap(newAnfragen.verwendet).anzahl; logToSave.Add("");
-                    //Console.WriteLine(i + " : " + currentEnergy + " \t" + newAnfragen.verwendet.Count + " " + newAnfragen.abgelehnt.Count + "  " + sumOverlap(newAnfragen.verwendet).anzahl + " Üs");
-                    currentAnfragen = cloneLists(newAnfragen);
-                    if (sumOverlap(currentAnfragen.verwendet).anzahl == 0 && energyChart(currentAnfragen.verwendet) < bestEnergy) {
-                        bestEnergy = energyChart(currentAnfragen.verwendet);
-                        besteVerteilung = cloneLists(newAnfragen);
+                    logToSave[logToSave.Count - 1] += " " + sumOverlap(newRegistrations.accepted).anzahl; logToSave.Add("");
+                    //Console.WriteLine(i + " : " + currentEnergy + " \t" + newRegistrations.accepted.Count + " " + newRegistrations.declined.Count + "  " + sumOverlap(newRegistrations.accepted).anzahl + " Üs");
+                    currentRegistrations = cloneLists(newRegistrations);
+                    if (sumOverlap(currentRegistrations.accepted).anzahl == 0 && energyChart(currentRegistrations.accepted) < bestEnergy) {
+                        bestEnergy = energyChart(currentRegistrations.accepted);
+                        bestDistribution = cloneLists(newRegistrations);
                     }
                 }
                 else {
-                    newAnfragen = cloneLists(currentAnfragen);
+                    newRegistrations = cloneLists(currentRegistrations);
                 }
-                energies.Add(energyChart(currentAnfragen.verwendet));
-                overlaps.Add(sumOverlap(currentAnfragen.verwendet).anzahl);
+                energies.Add(energyChart(currentRegistrations.accepted));
+                overlaps.Add(sumOverlap(currentRegistrations.accepted).anzahl);
                 temp *= tempDecreaseRate;//200000, 130, 0.999972 //70000,74,0.99997 //70000,23,0.99994
             }
 
             Console.WriteLine("done");
 
-            output = (bestEnergy, energies, overlaps, currentAnfragen, besteVerteilung);
-            anfragen = cloneLists(currentAnfragen);
+            output = (bestEnergy, energies, overlaps, currentRegistrations, bestDistribution);
+            registrations = cloneLists(currentRegistrations);
         }
 
         #region moves
         /// <summary>
-        /// verschieben: weiter weg wird unwahrscheinlicher je kleiner temp wird (afr.pos wird als koordinatenursprung angenommen; move=rnd*(temp/startTemp))
+        /// verschieben: weiter weg wird unwahrscheinlicher je kleiner temp wird (reg.pos wird als koordinatenursprung angenommen; move=rnd*(temp/startTemp))
         /// </summary>
-        public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) move1((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp) {
-            int index = rnd.Next(anfragen.verwendet.Count());
-            int x = rnd.Next(streetLength - anfragen.verwendet[index].länge + 1) - anfragen.verwendet[index].position;
+        public (List<Registration> accepted, List<Registration> declined) move1((List<Registration> accepted, List<Registration> declined) registrations, double temp) {
+            int index = rnd.Next(registrations.accepted.Count());
+            int x = rnd.Next(streetLength - registrations.accepted[index].rentLength + 1) - registrations.accepted[index].position;
             int move = (int)(x * (temp / startTemperature));
             move = (move == 0) ? ((x > 0) ? +1 : -1) : move;
-            anfragen.verwendet[index].position += move;
-            return (anfragen.verwendet, anfragen.abgelehnt);
+            registrations.accepted[index].position += move;
+            return (registrations.accepted, registrations.declined);
         }
 
-        //O(n)= anfragen.count
+        //O(registrations.count)
         /// <summary>
         ///verschieben (wie move1) und swappen
         /// </summary>
-        public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) move2((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp) {
+        public (List<Registration> accepted, List<Registration> declined) move2((List<Registration> accepted, List<Registration> declined) registrations, double temp) {
             int rnd1 = rnd.Next(100);
-            if (rnd1 < 50 && anfragen.verwendet.Count > 0) { //verschiebe
-                anfragen = move1(anfragen, temp);
+            if (rnd1 < 50 && registrations.accepted.Count > 0) { //verschiebe
+                registrations = move1(registrations, temp);
                 logToSave.Add("verschiebe");
             }
             else {// swappe
                 int rnd2 = rnd.Next(100);
-                if ((rnd2 < 50 || anfragen.abgelehnt.Count == 0) && anfragen.verwendet.Count > 0) {//reinswap
-                    int index = rnd.Next(anfragen.verwendet.Count);
-                    anfragen.abgelehnt.Add(anfragen.verwendet[index]);
-                    anfragen.verwendet.RemoveAt(index);
-                    logToSave.Add("swap->abgelehnt");
+                if ((rnd2 < 50 || registrations.declined.Count == 0) && registrations.accepted.Count > 0) {//reinswap
+                    int index = rnd.Next(registrations.accepted.Count);
+                    registrations.declined.Add(registrations.accepted[index]);
+                    registrations.accepted.RemoveAt(index);
+                    logToSave.Add("swap->declined");
                 }
                 else {//rausswap
-                    int index = rnd.Next(anfragen.abgelehnt.Count);
-                    anfragen.abgelehnt[index].position = rnd.Next(streetLength - anfragen.abgelehnt[index].länge + 1);
-                    anfragen.verwendet.Add(anfragen.abgelehnt[index]);
-                    anfragen.abgelehnt.RemoveAt(index);
-                    logToSave.Add("swap->verwendet");
+                    int index = rnd.Next(registrations.declined.Count);
+                    registrations.declined[index].position = rnd.Next(streetLength - registrations.declined[index].rentLength + 1);
+                    registrations.accepted.Add(registrations.declined[index]);
+                    registrations.declined.RemoveAt(index);
+                    logToSave.Add("swap->accepted");
                 }
             }
-            return (anfragen.verwendet, anfragen.abgelehnt);
+            return (registrations.accepted, registrations.declined);
         }
 
-        //O(n)=findFreePositions4+anfragen.count= 10^6+10^3*anfragen.Count = anfragen.count*afr.länge+10^3*afr.länge
+        //O(findFreePositions4+registrations.count= 10^6+10^3*registrations.Count) = O(registrations.count*reg.länge+10^3*reg.länge)
         /// <summary>
         ///verschieben und swappen ohne Überschneidungen (nur an Position wo sicher keine Überschneidungen auftreten)
         /// </summary>
-        public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) move4((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp) {
+        public (List<Registration> accepted, List<Registration> declined) move4((List<Registration> accepted, List<Registration> declined) registrations, double temp) {
             int rnd1 = rnd.Next(100);
-            if (rnd1 < 50 && anfragen.verwendet.Count > 0) { //verschiebe //variabel
-                int index = rnd.Next(anfragen.verwendet.Count());
-                int x = rnd.Next(streetLength - anfragen.verwendet[index].länge + 1) - anfragen.verwendet[index].position;
+            if (rnd1 < 50 && registrations.accepted.Count > 0) { //verschiebe //variabel
+                int index = rnd.Next(registrations.accepted.Count());
+                int x = rnd.Next(streetLength - registrations.accepted[index].rentLength + 1) - registrations.accepted[index].position;
                 int move = x;
                 move = (int)(move * (temp / startTemperature)); 
                 move = (move == 0) ? ((x > 0) ? +1 : -1) : move;
-                List<int> freePositions = findFreePositions5(unoccupiedFields, anfragen.verwendet[index]);
+                List<int> freePositions = findFreePositions5(unoccupiedFields, registrations.accepted[index]);
                 if (freePositions.Count > 0) {
-                    unoccupiedFields = setAfrUnoccupiedFields(unoccupiedFields, anfragen.verwendet[index], true);
-                    anfragen.verwendet[index].position = freePositions[findClosestValue4(anfragen.verwendet[index].position + move, freePositions)]; //kleinere Sprünge bei niedrigerer Temperatur
-                    unoccupiedFields = setAfrUnoccupiedFields(unoccupiedFields, anfragen.verwendet[index], false);
+                    unoccupiedFields = setRegUnoccupiedFields(unoccupiedFields, registrations.accepted[index], true);
+                    registrations.accepted[index].position = freePositions[findClosestValue4(registrations.accepted[index].position + move, freePositions)]; //kleinere Sprünge bei niedrigerer temperature
+                    unoccupiedFields = setRegUnoccupiedFields(unoccupiedFields, registrations.accepted[index], false);
                 }
                 logToSave.Add("verschiebe");
             }
             else {// swappe
                 int rnd2 = rnd.Next(100);
-                if ((rnd2 < 50 || anfragen.abgelehnt.Count == 0) && anfragen.verwendet.Count > 0) {//reinswap
-                    int index = rnd.Next(anfragen.verwendet.Count);
-                    anfragen.abgelehnt.Add(anfragen.verwendet[index]);
-                    anfragen.verwendet.RemoveAt(index);
-                    unoccupiedFields = setAfrUnoccupiedFields(unoccupiedFields, anfragen.verwendet[index], true);
-                    logToSave.Add("swap->abgelehnt");
+                if ((rnd2 < 50 || registrations.declined.Count == 0) && registrations.accepted.Count > 0) {//reinswap
+                    int index = rnd.Next(registrations.accepted.Count);
+                    registrations.declined.Add(registrations.accepted[index]);
+                    registrations.accepted.RemoveAt(index);
+                    unoccupiedFields = setRegUnoccupiedFields(unoccupiedFields, registrations.accepted[index], true);
+                    logToSave.Add("swap->declined");
                 }
                 else {//rausswap
-                    int index = rnd.Next(anfragen.abgelehnt.Count);
-                    List<int> freePositions = findFreePositions5(unoccupiedFields, anfragen.verwendet[index]);
+                    int index = rnd.Next(registrations.declined.Count);
+                    List<int> freePositions = findFreePositions5(unoccupiedFields, registrations.accepted[index]);
                     if (freePositions.Count > 0) {
-                        anfragen.abgelehnt[index].position = freePositions[rnd.Next(freePositions.Count)];
-                        anfragen.verwendet.Add(anfragen.abgelehnt[index]);
-                        anfragen.abgelehnt.RemoveAt(index);
-                        unoccupiedFields = setAfrUnoccupiedFields(unoccupiedFields, anfragen.verwendet[index], false);
-                        logToSave.Add("swap->verwendet");
+                        registrations.declined[index].position = freePositions[rnd.Next(freePositions.Count)];
+                        registrations.accepted.Add(registrations.declined[index]);
+                        registrations.declined.RemoveAt(index);
+                        unoccupiedFields = setRegUnoccupiedFields(unoccupiedFields, registrations.accepted[index], false);
+                        logToSave.Add("swap->accepted");
                     }
                 }
             }
-            return (anfragen.verwendet, anfragen.abgelehnt);
+            return (registrations.accepted, registrations.declined);
         }
 
         #endregion
 
         #region energy
 
-        //O(n)=anfragen.Count
+        //O(registrations.Count)
         /// <summary>
         /// summiert die Miete, die der Veranstalter mit gegebener Verteilung einnimmt. Überschneidungen nicht berücksichtigt!
         /// </summary>
         /// <returns>-rent</returns>
-        private int sumRent(List<Anfrage> anfragenLocal) {
+        private int sumRent(List<Registration> registrationsLoc) {
             int energy = 0;
-            for (int i = 0; i < anfragenLocal.Count; i++) {
-                energy -= anfragenLocal[i].länge * anfragenLocal[i].mietdauer;
+            for (int i = 0; i < registrationsLoc.Count; i++) {
+                energy -= registrationsLoc[i].rentLength * registrationsLoc[i].rentDuration;
             }
             return energy;
         }
 
-        //O(n)=anfragen.Count
-        private int sumAllRent((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLocal) {
-            List<Anfrage> mergedAnfragen = new List<Anfrage>();
-            foreach (Anfrage afr in anfragenLocal.verwendet) { mergedAnfragen.Add(afr.clone()); }
-            mergedAnfragen.AddRange(anfragenLocal.abgelehnt);
-            return sumRent(mergedAnfragen);
+        //O(registrations.Count)
+        private int sumAllRent((List<Registration> accepted, List<Registration> declined) registrationsLoc) {
+            List<Registration> mergedRegistrations = new List<Registration>();
+            foreach (Registration reg in registrationsLoc.accepted) { mergedRegistrations.Add(reg.clone()); }
+            mergedRegistrations.AddRange(registrationsLoc.declined);
+            return sumRent(mergedRegistrations);
         }
 
-        //O(n)=anfragen.Count^2
+        //O(registrations.Count^2)
         /// <summary>
-        /// summiert die Überschneidung aller Anfragen / zählt die Anzahl der Überschneidungen
+        /// summiert die Überschneidung aller Anmeldungen / zählt die Anzahl der Überschneidungen
         /// </summary>
-        /// <param name="anfragenLocal">Anfragen die überprüft werden sollen</param>
+        /// <param name="registrationsLoc">Anmeldungen die überprüft werden sollen</param>
         /// <returns>Tuple (anzahl der Überschneidungen, summe der Überschneidungen)</returns>
-        private (int anzahl, int summe) sumOverlap(List<Anfrage> anfragenLocal) {
+        private (int anzahl, int summe) sumOverlap(List<Registration> registrationsLoc) {
             int summe = 0; int anzahl = 0;
-            for (int i = 0; i < anfragenLocal.Count; i++) {
+            for (int i = 0; i < registrationsLoc.Count; i++) {
                 for (int j = 0; j < i; j++) {
-                    if (anfragenLocal[i].id != anfragenLocal[j].id) {
-                        int overlap = anfragenLocal[i].overlap(anfragenLocal[j]);
+                    if (registrationsLoc[i].id != registrationsLoc[j].id) {
+                        int overlap = registrationsLoc[i].overlap(registrationsLoc[j]);
                         summe += overlap;
                         anzahl += (overlap > 0 ? 1 : 0);
                     }
@@ -294,58 +294,58 @@ namespace BwInf_39._2._1_Flohmarkt {
             return (anzahl, summe);
         }
 
-        //O(n)=sumOverlap+sumRent=anfragen.Count^2
+        //O(sumOverlap+sumRent=registrations.Count^2)
         /// <summary>
         /// -rent + n*overlap
         /// </summary>
-        /// <param name="anfragenLocal">nur auf dem Feld plazierte Anfragen, keine auf Warteliste</param>
+        /// <param name="registrationsLoc">nur auf dem Feld plazierte Anmeldungen, keine auf Warteliste</param>
         /// <returns>-rent + n*overlap</returns>
-        public int energy(List<Anfrage> anfragenLocal, double temperatur) {
-            int energy = sumRent(anfragenLocal);
-            energy += sumOverlap(anfragenLocal).summe * (int)((1-(temperatur / startTemperature) * 20) + 1);// * (int)(((temperatur / startTemperature) * 20) + 1); //Überschneidung wird "wichtiger", je größer die Temperatur wird
-            foreach (Anfrage afr in anfragenLocal) { //border überschreitung prüfen
+        public int energy(List<Registration> registrationsLoc, double temperature) {
+            int energy = sumRent(registrationsLoc);
+            energy += sumOverlap(registrationsLoc).summe * (int)((1-(temperature / startTemperature) * 20) + 1);// * (int)(((temperature / startTemperature) * 20) + 1); //Überschneidung wird "wichtiger", je größer die Temperatur wird
+            foreach (Registration reg in registrationsLoc) { //border überschreitung prüfen
                 foreach (int border in borderPos) {
-                    if (afr.position < border && afr.position + afr.länge > border) {
-                        energy += 2 * afr.länge * afr.mietdauer;
+                    if (reg.position < border && reg.position + reg.rentLength > border) {
+                        energy += 2 * reg.rentLength * reg.rentDuration;
                     }
                 }
             }
             return energy;
         }
 
-        //O(n)=anfragen.Count*checkifOverlap = anfragen.Count^2
+        //O(registrations.Count*checkifOverlap = registrations.Count^2)
         /// <summary>
-        /// - (rent aller Anfragen die sich nicht überschneiden)
+        /// - (rent aller Anmeldungen die sich nicht überschneiden)
         /// </summary>
-        /// <param name="anfragenLocal"></param>
+        /// <param name="registrationsLoc"></param>
         /// <returns></returns>
-        public int energy2(List<Anfrage> anfragenLocal, double temperatur = 0) {
+        public int energy2(List<Registration> registrationsLoc, double temperature = 0) {
             int energy = 0;
-            foreach (Anfrage afr in anfragenLocal) {
-                if (checkIfOverlap3(afr, anfragenLocal) == false) {
-                    energy -= afr.länge * afr.mietdauer;
+            foreach (Registration reg in registrationsLoc) {
+                if (checkIfOverlap3(reg, registrationsLoc) == false) {
+                    energy -= reg.rentLength * reg.rentDuration;
                 }
                 foreach (int border in borderPos) {
-                    if (afr.position < border && afr.position + afr.länge > border) {
-                        energy += 2 * afr.länge * afr.mietdauer;
+                    if (reg.position < border && reg.position + reg.rentLength > border) {
+                        energy += 2 * reg.rentLength * reg.rentDuration;
                     }
                 }
             }
             return energy;
         }
 
-        //O(n)=anfragen.Count+sumOverlap = anfragen.Count^2+anfragen.Count
+        //O(registrations.Count+sumOverlap = registrations.Count^2+registrations.Count)
         /// <summary>
-        /// -rent+overlap; berechnet Kosten, die für das Diagramm verwendet werden
+        /// -rent+overlap; berechnet Kosten, die für das Diagramm accepted werden
         /// </summary>
-        /// <param name="anfragenLocal"></param>
+        /// <param name="registrationsLoc"></param>
         /// <returns></returns>
-        private int energyChart(List<Anfrage> anfragenLocal) {
+        private int energyChart(List<Registration> registrationsLoc) {
             int energy = 0;
-            for (int i = 0; i < anfragenLocal.Count; i++) {
-                energy -= anfragenLocal[i].länge * anfragenLocal[i].mietdauer;
+            for (int i = 0; i < registrationsLoc.Count; i++) {
+                energy -= registrationsLoc[i].rentLength * registrationsLoc[i].rentDuration;
             }
-            energy += sumOverlap(anfragenLocal).summe;
+            energy += sumOverlap(registrationsLoc).summe;
             return energy;
         }
 
@@ -358,9 +358,9 @@ namespace BwInf_39._2._1_Flohmarkt {
          **/
         public void printSaveResult() {
             Console.WriteLine("\nLETZTE VERTEILUNG");
-            printEnding(output.letzteVerteilung);
+            printEnding(output.lastDistribution);
             Console.WriteLine("\nBESTE VERTEILUNG");
-            printEnding(output.besteVerteilung);
+            printEnding(output.bestDistribution);
             Console.Write("\nplot energies (y/n): ");
             if (Console.ReadLine() == "y") {
                 plotEnergy(output.energies);
@@ -369,11 +369,11 @@ namespace BwInf_39._2._1_Flohmarkt {
                 Console.Write("save result, meta, log (y/n y/n y/n): ");
                 string[] input = Console.ReadLine().Split(' ');
                 if (input[0] == "y") {
-                    saveResult(output.besteVerteilung);
+                    saveResult(output.bestDistribution);
                     Console.WriteLine("saved result");
                 }
                 if (input[1] == "y") {
-                    saveMeta(output.energies, output.overlaps, output.besteVerteilung, output.bestEnergy);
+                    saveMeta(output.energies, output.overlaps, output.bestDistribution, output.bestEnergy);
                     Console.WriteLine("saved meta");
                 }
                 if (input[2] == "y") {
@@ -402,26 +402,26 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// <summary>
         /// prints infos (sumOverlap.Anzahl)
         /// </summary>
-        /// <param name="anfragenLocal"></param>
-        public void printEnding((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLocal) {
-            Console.WriteLine(anfragenLocal.verwendet.Count + " verwendet;  " + anfragenLocal.abgelehnt.Count + " abgelehnt");
-            Console.WriteLine(sumOverlap(anfragenLocal.verwendet).anzahl + " Überschneidungen");
-            Console.WriteLine("Mietsumme aller Verwendeten: " + sumRent(anfragenLocal.verwendet) + ";   Mietsumme - Überschneidungen: " + energyChart(anfragenLocal.verwendet)); ;
+        /// <param name="registrationsLoc"></param>
+        public void printEnding((List<Registration> accepted, List<Registration> declined) registrationsLoc) {
+            Console.WriteLine(registrationsLoc.accepted.Count + " accepted;  " + registrationsLoc.declined.Count + " declined");
+            Console.WriteLine(sumOverlap(registrationsLoc.accepted).anzahl + " Überschneidungen");
+            Console.WriteLine("Mietsumme aller Verwendeten: " + sumRent(registrationsLoc.accepted) + ";   Mietsumme - Überschneidungen: " + energyChart(registrationsLoc.accepted)); ;
         }
 
         /// <summary>
-        /// speichert ergebniss (Positionen der Anfragen)
+        /// speichert ergebniss (Positionen der Anmeldungen)
         /// </summary>
-        /// <param name="anfragen"></param>
-        public void saveResult((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen) {
-            string filename = number + " savedResult " + programStartTime + ".csv";
+        /// <param name="registrations"></param>
+        public void saveResult((List<Registration> accepted, List<Registration> declined) registrations) {
+            string filename = dataSetNumber + " savedResult " + programStartTime + ".csv";
             StreamWriter txt = new StreamWriter(filename);
             txt.WriteLine("Mietbegin Mietende Länge ID position");
-            foreach (var afr in anfragen.verwendet) {
-                txt.WriteLine("{0} {1} {2} {3} {4}", afr.mietbeginn, afr.mietende, afr.länge, afr.id, afr.position);
+            foreach (var reg in registrations.accepted) {
+                txt.WriteLine("{0} {1} {2} {3} {4}", reg.rentStart, reg.rentEnd, reg.rentLength, reg.id, reg.position);
             }
-            foreach (var afr in anfragen.abgelehnt) {
-                txt.WriteLine("{0} {1} {2} {3} -1", afr.mietbeginn, afr.mietende, afr.länge, afr.id);
+            foreach (var reg in registrations.declined) {
+                txt.WriteLine("{0} {1} {2} {3} -1", reg.rentStart, reg.rentEnd, reg.rentLength, reg.id);
             }
             txt.Close(); txt.Dispose();
         }
@@ -430,8 +430,8 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// speichert meta daten (durchläufe, starttemperatur, ... und die energien vom simAnn im Zeitverlauf) 
         /// </summary>
         /// <param name="energies"></param>
-        public void saveMeta(List<int> energies, List<int> overlaps, (List<Anfrage> verwendet, List<Anfrage> abgelehnt) besteVerteilung, int bestEnergy) {
-            string filename = number + " savedMeta " + programStartTime + ".csv";
+        public void saveMeta(List<int> energies, List<int> overlaps, (List<Registration> accepted, List<Registration> declined) bestDistribution, int bestEnergy) {
+            string filename = dataSetNumber + " savedMeta " + programStartTime + ".csv";
             StreamWriter txt = new StreamWriter(filename);
             txt.WriteLine("SIMANN META");
             txt.WriteLine("Anzahl Durchläufe: " + runs);
@@ -439,9 +439,9 @@ namespace BwInf_39._2._1_Flohmarkt {
             txt.WriteLine("Verkleinerungsrate: " + tempDecreaseRate);
             txt.WriteLine();
             txt.WriteLine("BESTE VERTEILUNG");
-            txt.WriteLine("Anzahl Anfragen: " + (besteVerteilung.verwendet.Count + besteVerteilung.abgelehnt.Count));
-            txt.WriteLine("   davon abgelehnt: " + besteVerteilung.abgelehnt.Count);
-            txt.WriteLine("Anzahl Überschneidungen: " + sumOverlap(besteVerteilung.verwendet).anzahl);
+            txt.WriteLine("Anzahl Anmeldungen: " + (bestDistribution.accepted.Count + bestDistribution.declined.Count));
+            txt.WriteLine("   davon declined: " + bestDistribution.declined.Count);
+            txt.WriteLine("Anzahl Überschneidungen: " + sumOverlap(bestDistribution.accepted).anzahl);
             txt.WriteLine("Energie: " + bestEnergy);
             txt.WriteLine();
             txt.WriteLine("Energieberechnung: " + energyType.name);
@@ -460,7 +460,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 		/// speichert log daten
 		/// </summary>
 		public void saveLog() {
-            string filename = number + " savedLog " + programStartTime + ".csv";
+            string filename = dataSetNumber + " savedLog " + programStartTime + ".csv";
             StreamWriter txt = new StreamWriter(filename);
             foreach (string s in logToSave) {
                 txt.WriteLine(s);
@@ -472,59 +472,59 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         #region specialFunctions
 
-        //O(n)=anfragen.Count
+        //O(registrations.Count
         /// <summary>
-        /// gibt ein geklontes (Wert-kopiertes) anfragen Tuple (verwendet, abgelehnt) zurück.
+        /// gibt ein geklontes (Wert-kopiertes) Anmeldungen Tuple (accepted, declined) zurück.
         /// </summary>
-        /// <param name="anfragenLocal">zu klonendes Tuple</param>
+        /// <param name="registrationsLoc">zu klonendes Tuple</param>
         /// <returns></returns>
-        public (List<Anfrage> verwendet, List<Anfrage> abgelehnt) cloneLists((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragenLocal) {
-            (List<Anfrage> verwendet, List<Anfrage> abgelehnt) returnAnfragen; returnAnfragen.verwendet = new List<Anfrage>(); returnAnfragen.abgelehnt = new List<Anfrage>();
-            foreach (Anfrage afr in anfragenLocal.verwendet) { returnAnfragen.verwendet.Add(afr.clone()); }
-            foreach (Anfrage afr in anfragenLocal.abgelehnt) { returnAnfragen.abgelehnt.Add(afr.clone()); }
-            return returnAnfragen;
+        public (List<Registration> accepted, List<Registration> declined) cloneLists((List<Registration> accepted, List<Registration> declined) registrationsLoc) {
+            (List<Registration> accepted, List<Registration> declined) returnRegistrations; returnRegistrations.accepted = new List<Registration>(); returnRegistrations.declined = new List<Registration>();
+            foreach (Registration reg in registrationsLoc.accepted) { returnRegistrations.accepted.Add(reg.clone()); }
+            foreach (Registration reg in registrationsLoc.declined) { returnRegistrations.declined.Add(reg.clone()); }
+            return returnRegistrations;
         }
 
-        //O(N)=anfragen.Count
+        //O(registrations.Count
         /// <summary>
-        /// prüft, ob die gegebene Anfrage eine andere in der Liste überschneidet
+        /// prüft, ob die gegebene Anmeldung eine andere in der Liste überschneidet
         /// </summary>
-        /// <param name="afr">zu prüfende Anfrage</param>
-        /// <param name="anfragenLocal">Liste mit allen Anfragen, mit denen geprüft werden soll</param>
+        /// <param name="reg">zu prüfende Anmeldung</param>
+        /// <param name="registrationsLoc">Liste mit allen Anmeldungen, mit denen geprüft werden soll</param>
         /// <returns>true: Überschneidung; false: keine Überschneidung</returns>
-        private bool checkIfOverlap3(Anfrage afr, List<Anfrage> anfragenLocal) {
-            for (int i = 0; i < anfragenLocal.Count; i++) {
-                if (anfragenLocal[i].overlap(afr) > 0 && afr.id != anfragenLocal[i].id) {
+        private bool checkIfOverlap3(Registration reg, List<Registration> registrationsLoc) {
+            for (int i = 0; i < registrationsLoc.Count; i++) {
+                if (registrationsLoc[i].overlap(reg) > 0 && reg.id != registrationsLoc[i].id) {
                     return true;
                 }
             }
             return false;
         }
 
-        //O(n)=10^3 + anfragen.count*afr.länge+10^3*afr.länge = 10^6+10^3*anfragen.Count
+        //O(10^3 + registrations.count*reg.länge+10^3*reg.länge = 10^6+10^3*registrations.Count
         /// <summary>
-        /// findet alle möglichen Positionen für eine gegebene Anfrage, an denen keine Überschneidung auftritt
+        /// findet alle möglichen Positionen für eine gegebene Anmeldung, an denen keine Überschneidung auftritt
         /// </summary>
-        /// <param name="afr">Anfrage</param>
-        /// <param name="anfragenLocal">liste mit allen Anfragen deren Überschneidung berücksichtigt werden sollen</param>
-        /// <returns>Liste mit allen Positionen in der Straße bei denen für die Anfrage keine Überschneidung auftritt</returns>
-        private List<int> findFreePositions4(Anfrage afr, List<Anfrage> anfragenLocal) {
+        /// <param name="reg">Anmeldung</param>
+        /// <param name="registrationsLoc">liste mit allen Anmeldungen deren Überschneidung berücksichtigt werden sollen</param>
+        /// <returns>Liste mit allen Positionen in der Straße bei denen für die Anmeldung keine Überschneidung auftritt</returns>
+        private List<int> findFreePositions4(Registration reg, List<Registration> registrationsLoc) {
             bool[] verticalPositions = new bool[streetLength];
             for (int e = 0; e < verticalPositions.Length; e++) { verticalPositions[e] = true; }
-            for (int i = 0; i < anfragenLocal.Count; i++) {
-                if (anfragenLocal[i].overlap(new Anfrage(-1, afr.mietbeginn, afr.mietende, streetLength, 0)) > 0) { //wenn aktuell betrachtete Anfrage sich mit betrachtetem Querstreifen überschneidet
-                    for (int j = anfragenLocal[i].position; j < anfragenLocal[i].position + anfragenLocal[i].länge; j++) { //gehe Bereich ab, in dem sich betrachtete Anfrage befindet und setze alle spotsvertikal Einträge an dieser Stelle auf false
+            for (int i = 0; i < registrationsLoc.Count; i++) {
+                if (registrationsLoc[i].overlap(new Registration(-1, reg.rentStart, reg.rentEnd, streetLength, 0)) > 0) { //wenn aktuell betrachtete Anmeldung sich mit betrachtetem Querstreifen überschneidet
+                    for (int j = registrationsLoc[i].position; j < registrationsLoc[i].position + registrationsLoc[i].rentLength; j++) { //gehe Bereich ab, in dem sich betrachtete Anmeldung befindet und setze alle spotsvertikal Einträge an dieser Stelle auf false
                         verticalPositions[j] = false;
                     }
                 }
             }
             List<int> positions = new List<int>();
-            for (int i = 0; i <= streetLength - afr.länge; i++) {
+            for (int i = 0; i <= streetLength - reg.rentLength; i++) {
                 bool horizontalPosition = true;
-                for (int j = 0; j < afr.länge; j++) {
+                for (int j = 0; j < reg.rentLength; j++) {
                     if (verticalPositions[i + j] == false) {
                         horizontalPosition = false;
-                        i += j; // wenn an Stelle i+j false ist, kann man die Stellen zwischen i und i+j überspringen, da auf jeden Fall keine ganze afr.länge mher reinpasst
+                        i += j; // wenn an Stelle i+j false ist, kann man die Stellen zwischen i und i+j überspringen, da auf jeden Fall keine ganze reg.länge mher reinpasst
                         break;
                     }
                 }
@@ -535,25 +535,25 @@ namespace BwInf_39._2._1_Flohmarkt {
             return positions;
         }
 
-        //O(n)= 10^3*afr.länge*afr.dauer
+        //O( 10^3*reg.länge*reg.dauer
         /// <summary>
-        /// findet alle möglichen Positionen für eine gegebene Anfrage, diekeine Grenze überschreitet, an denen keine Überschneidung auftritt auf Basis von occupiedFields[] -> skaliert besser
+        /// findet alle möglichen Positionen für eine gegebene Anmeldung, diekeine Grenze überschreitet, an denen keine Überschneidung auftritt auf Basis von occupiedFields[] -> skaliert besser
         /// </summary>
-        /// <param name="afr">Anfrage</param>
+        /// <param name="reg">Anmeldung</param>
         /// <param name="unoccupiedFieldsLoc">2D Array das die Ort-Zeit-tafel darstellt. true: frei; false: besetzt</param>
-        /// <returns>Liste mit allen Positionen in der Straße bei denen für die Anfrage keine Überschneidung auftritt</returns>
-        private List<int> findFreePositions5(bool[,] unoccupiedFieldsLoc, Anfrage afr) {
+        /// <returns>Liste mit allen Positionen in der Straße bei denen für die Anmeldung keine Überschneidung auftritt</returns>
+        private List<int> findFreePositions5(bool[,] unoccupiedFieldsLoc, Registration reg) {
             List<int> positions = new List<int>();
-            for (int x = 0; x <= unoccupiedFieldsLoc.GetLength(0) - afr.länge; x++) {
+            for (int x = 0; x <= unoccupiedFieldsLoc.GetLength(0) - reg.rentLength; x++) {
                 bool crossBorder = false;
                 foreach (int border in borderPos) { //check if current position would cross any border (Erweiterung)
-                    if (x < border && x + afr.länge > border) { crossBorder = true; break; }
+                    if (x < border && x + reg.rentLength > border) { crossBorder = true; break; }
                 }
                 if (crossBorder == false) {
                     bool horizontalPosition = true;
-                    for (int j = 0; j < afr.länge; j++) {
+                    for (int j = 0; j < reg.rentLength; j++) {
                         bool vertikalPosition = true;
-                        for (int y = afr.mietbeginn - starttime; y < afr.mietende - starttime; y++) {
+                        for (int y = reg.rentStart - starttime; y < reg.rentEnd - starttime; y++) {
                             if (unoccupiedFieldsLoc[x + j, y] == false) { vertikalPosition = false; break; }
                         }
                         if (vertikalPosition == false) { horizontalPosition = false; x += j; break; }
@@ -566,7 +566,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             return positions;
         }
 
-        //O(n)=log(list.count)
+        //O(log(list.count)
         /// <summary>
         /// finds closest value to targetvalue in int list
         /// </summary>
@@ -589,37 +589,37 @@ namespace BwInf_39._2._1_Flohmarkt {
 
 
         /// <summary>
-        /// compares two Anfragen by rent; x>y -> -1  x<y ->1
+        /// compares two Registrations by rent; x>y -> -1  x<y ->1
         /// </summary>
-        /// <param name="x">first Anfrage to compare</param>
-        /// <param name="y">second Anfrage to compare</param>
+        /// <param name="x">first Anmeldung to compare</param>
+        /// <param name="y">second Anmeldung to compare</param>
         /// <returns></returns>
-        private static int compareByRent4(Anfrage x, Anfrage y) {
-            int rentX = x.mietdauer * x.länge;
-            int rentY = y.mietdauer * y.länge;
+        private static int compareByRent4(Registration x, Registration y) {
+            int rentX = x.rentDuration * x.rentLength;
+            int rentY = y.rentDuration * y.rentLength;
             if (rentX > rentY) { return -1; } else if (rentX < rentY) { return +1; }
             return 0;
         }
 
-        private static int compareByLength5(Anfrage x, Anfrage y) {
-            int rentX = x.mietdauer * x.länge;
-            int rentY = y.mietdauer * y.länge;
-            if (x.mietdauer > y.mietdauer) { return -1; } else if (x.mietdauer < y.mietdauer) { return +1; } else if (x.länge > y.länge) { return -1; } else if (x.länge < y.länge) { return +1; }
+        private static int compareByLength5(Registration x, Registration y) {
+            int rentX = x.rentDuration * x.rentLength;
+            int rentY = y.rentDuration * y.rentLength;
+            if (x.rentDuration > y.rentDuration) { return -1; } else if (x.rentDuration < y.rentDuration) { return +1; } else if (x.rentLength > y.rentLength) { return -1; } else if (x.rentLength < y.rentLength) { return +1; }
             return 0;
         }
 
 
-        //O(n)= dauer*(streetlength-länge)+länge*(gesamtdauer-dauer); worst: dauer=10, länge=1 -> ca 10000 bzw 10^4 = dauer*10^3+länge*10
+        //O( dauer*(streetlength-länge)+länge*(gesamtdauer-dauer); worst: dauer=10, länge=1 -> ca 10000 bzw 10^4 = dauer*10^3+länge*10
         /// <summary>
-        /// berechnet an eine Anfrage grenzende Fläche auf der Zeit-Ort-Tafel bis zur nächsten Anfrage; 
+        /// berechnet an eine Anmeldung grenzende Fläche auf der Zeit-Ort-Tafel bis zur nächsten Anmeldung; 
         /// </summary>
         /// <param name="unoccupiedFieldsLoc">bool array mit unbelegten Feldern</param>
-        /// <param name="afr"></param>
+        /// <param name="reg"></param>
         /// <param name="position"></param>
         /// <returns></returns>
-        private (int links, int rechts, int oben, int unten) getSpaceAround5(bool[,] unoccupiedFieldsLoc, Anfrage afr, int position) {
+        private (int links, int rechts, int oben, int unten) getSpaceAround5(bool[,] unoccupiedFieldsLoc, Registration reg, int position) {
             int links = 0;
-            for (int i = afr.mietbeginn - starttime; i < afr.mietende - starttime; i++) {
+            for (int i = reg.rentStart - starttime; i < reg.rentEnd - starttime; i++) {
                 for (int j = position - 1; j >= 0; j--) {
                     if (unoccupiedFieldsLoc[j, i] == false) { break; }
                     links++;
@@ -627,24 +627,24 @@ namespace BwInf_39._2._1_Flohmarkt {
             }
 
             int rechts = 0;
-            for (int i = afr.mietbeginn - starttime; i < afr.mietende - starttime; i++) {
-                for (int j = position + afr.länge; j < streetLength; j++) {
+            for (int i = reg.rentStart - starttime; i < reg.rentEnd - starttime; i++) {
+                for (int j = position + reg.rentLength; j < streetLength; j++) {
                     if (unoccupiedFieldsLoc[j, i] == false) { break; }
                     rechts++;
                 }
             }
 
             int oben = 0;
-            for (int i = position; i < position + afr.länge; i++) {
-                for (int j = afr.mietbeginn - starttime - 1; j >= 0; j--) {
+            for (int i = position; i < position + reg.rentLength; i++) {
+                for (int j = reg.rentStart - starttime - 1; j >= 0; j--) {
                     if (unoccupiedFieldsLoc[i, j] == false) { break; }
                     oben++;
                 }
             }
 
             int unten = 0;
-            for (int i = position; i < position + afr.länge; i++) {
-                for (int j = afr.mietende - starttime; j < duration; j++) {
+            for (int i = position; i < position + reg.rentLength; i++) {
+                for (int j = reg.rentEnd - starttime; j < duration; j++) {
                     if (unoccupiedFieldsLoc[i, j] == false) { break; }
                     unten++;
                 }
@@ -654,18 +654,18 @@ namespace BwInf_39._2._1_Flohmarkt {
         }
 
         //ist uU nicht der optimale Algo dafür
-        //O(n)=freePositions.Count*getSpaceAround5 = 10^7 = 10^3*(dauer*10^3+länge*10)
+        //O(freePositions.Count*getSpaceAround5 = 10^7 = 10^3*(dauer*10^3+länge*10)
         /// <summary>
-        /// findet beste Position für gegebene Anfrage; 
+        /// findet beste Position für gegebene Anmeldung; 
         /// </summary>
         /// <param name="unoccupiedFieldsLoc"></param>
-        /// <param name="afr"></param>
+        /// <param name="reg"></param>
         /// <param name="freePositions"></param>
         /// <returns></returns>
-        private List<int> findBestPosition5(bool[,] unoccupiedFieldsLoc, Anfrage afr, List<int> freePositions) {
+        private List<int> findBestPosition5(bool[,] unoccupiedFieldsLoc, Registration reg, List<int> freePositions) {
             (int smallestArea, List<int> positions) best = (int.MaxValue, new List<int>() { -2 });
             for (int i = 0; i < freePositions.Count; i++) {
-                (int links, int rechts, int oben, int unten) = getSpaceAround5(unoccupiedFieldsLoc, afr, freePositions[i]);
+                (int links, int rechts, int oben, int unten) = getSpaceAround5(unoccupiedFieldsLoc, reg, freePositions[i]);
                 int area = Math.Min(links, rechts) + Math.Min(oben, unten); //Summe von (kleinste Außenfläche rechts links) und (kleinste Außenfläche oben unten)
                 if (area < best.smallestArea) {
                     best = (area, new List<int>() { freePositions[i] });
@@ -687,24 +687,24 @@ namespace BwInf_39._2._1_Flohmarkt {
             if (maxLänge > streetLength) { Console.WriteLine("invalid input (maxLänge > streetLength)"); return; }
             if (maxEndTime > starttime + duration) { Console.WriteLine("invalid input (maxEndTime> startzeit + duration)"); return; }
 
-            List<(List<int> positions, Anfrage afr)> positions = new List<(List<int>, Anfrage)>();
+            List<(List<int> positions, Registration reg)> positions = new List<(List<int>, Registration)>();
             for (int länge = minLänge; länge < maxLänge; länge++) {
                 for (int dauer = minDauer; dauer <= maxDauer; dauer++) {
                     for (int starttime = minStartTime; starttime <= maxEndTime - dauer; starttime++) {
                         if (länge * dauer <= maxKosten) {
-                            Anfrage thisafr = new Anfrage(-1, starttime, starttime + dauer, länge, 0);
-                            List<int> thisPositions = findFreePositions5(unoccupiedFields, thisafr);
+                            Registration thisreg = new Registration(-1, starttime, starttime + dauer, länge, 0);
+                            List<int> thisPositions = findFreePositions5(unoccupiedFields, thisreg);
                             if (thisPositions.Count != 0) {
-                                positions.Add((thisPositions, thisafr));
+                                positions.Add((thisPositions, thisreg));
                             }
                         }
                     }
                 }
             }
 
-            foreach ((List<int> positions, Anfrage afr) pos in positions) {
-                pos.afr.print();
-                List<int> bestPositions = findBestPosition5(unoccupiedFields, pos.afr, pos.positions);
+            foreach ((List<int> positions, Registration reg) pos in positions) {
+                pos.reg.print();
+                List<int> bestPositions = findBestPosition5(unoccupiedFields, pos.reg, pos.positions);
                 foreach (int pos2 in bestPositions) {
                     Console.Write("  " + pos2);
                 }
@@ -719,29 +719,29 @@ namespace BwInf_39._2._1_Flohmarkt {
             double carThreshold = 5;//ab wievielen Metern Stand braucht man ein zusätzlichen Autostellplatz?
             int hoursBetweenToiletUse = 2;// alle wieviel Stunden geht man durchschnittlich auf Toilette? (abhängig von Wetter, Essensangebot,...)
             int[] parkingSpots = new int[duration];
-            int[] anfragenNum = new int[duration];
+            int[] registrationsNum = new int[duration];
             int[] toiletUsesPerHour = new int[duration];
 
             for (int t = starttime; t < starttime + duration; t++) {
-                foreach (Anfrage afr in anfragen.verwendet) {
-                    if (afr.mietbeginn <= t && afr.mietende > t) {
-                        parkingSpots[t - starttime] += (int)Math.Ceiling((double)afr.länge / (double)carThreshold);
-                        anfragenNum[t - starttime]++;
+                foreach (Registration reg in registrations.accepted) {
+                    if (reg.rentStart <= t && reg.rentEnd > t) {
+                        parkingSpots[t - starttime] += (int)Math.Ceiling((double)reg.rentLength / (double)carThreshold);
+                        registrationsNum[t - starttime]++;
                     }
 
-                    if (t - afr.mietbeginn >= 0 && (t - afr.mietbeginn) % hoursBetweenToiletUse == 0) {
+                    if (t - reg.rentStart >= 0 && (t - reg.rentStart) % hoursBetweenToiletUse == 0) {
                         toiletUsesPerHour[t - starttime]++;
                     }
                 }
             }
-            printArray(anfragenNum, "anfragen per hour");
+            printArray(registrationsNum, "registrations per hour");
             printArray(parkingSpots, "parking spots per hour");
 
             int[] newCarsPerHour = new int[duration];
             for (int t = starttime; t < starttime + duration; t++) {
-                foreach (Anfrage afr in anfragen.verwendet) {
-                    if (afr.mietbeginn == t) {
-                        newCarsPerHour[t - starttime] += (int)Math.Ceiling((double)afr.länge / (double)carThreshold);
+                foreach (Registration reg in registrations.accepted) {
+                    if (reg.rentStart == t) {
+                        newCarsPerHour[t - starttime] += (int)Math.Ceiling((double)reg.rentLength / (double)carThreshold);
                     }
                 }
             }
@@ -773,17 +773,17 @@ namespace BwInf_39._2._1_Flohmarkt {
             Console.WriteLine(secondLine);
         }
 
-        private bool[,] setAfrUnoccupiedFields(bool[,] unoccupiedFieldsLoc, Anfrage afr, bool boolVal) {
-            for (int i = afr.mietbeginn - starttime; i < afr.mietende - starttime; i++) {
-                for (int j = afr.position; j < afr.position + afr.länge; j++) {
+        private bool[,] setRegUnoccupiedFields(bool[,] unoccupiedFieldsLoc, Registration reg, bool boolVal) {
+            for (int i = reg.rentStart - starttime; i < reg.rentEnd - starttime; i++) {
+                for (int j = reg.position; j < reg.position + reg.rentLength; j++) {
                     unoccupiedFieldsLoc[j, i] = boolVal;
                 }
             }
             return unoccupiedFieldsLoc;
         }
 
-        public delegate int EnDel(List<Anfrage> anfragenLocal, double temperatur);
-        public delegate (List<Anfrage> verwendet, List<Anfrage> abgelehnt) moveDel((List<Anfrage> verwendet, List<Anfrage> abgelehnt) anfragen, double temp);
+        public delegate int EnDel(List<Registration> registrationsLoc, double temperature);
+        public delegate (List<Registration> accepted, List<Registration> declined) moveDel((List<Registration> accepted, List<Registration> declined) registrations, double temp);
 
         #endregion
     }
