@@ -14,8 +14,8 @@ namespace BwInf_39._2._1_Flohmarkt {
             else { return; }
 
             simulatedAnnealing simAnn = new simulatedAnnealing(dataSetNumber, registrations, streetLength, starttime, duration, 25, 70, 0.99995);
-            simAnn.borderPos = new List<int>() { 440, 402 };
-            simAnn.energyType = (simAnn.energy, "energy");
+            //simAnn.borderPos = new List<int>() { 440, 402 }; //Grenzpositionen festlegen
+            simAnn.energyType = (simAnn.energy2, "energy2");
             simAnn.moveType = (simAnn.move4, "move4");
             //simAnn.setRandomPositions2(0);
             simAnn.setPositions5((true, true, true));

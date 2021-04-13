@@ -57,15 +57,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         #endregion
 
         #region setPositions
-
-        //O(registrations.Count)
-        /// <summary>
-        /// setzt zufällige Positionen
-        /// </summary>
-        public void setRandomPositions1() {
-            setRandomPositions2(0);
-        }
-
+        
         //O(registrations.Count+registrations.Count^2)
         /// <summary>
         /// setzt zufällige Positionen, auch auf rejected Liste
@@ -501,43 +493,9 @@ namespace BwInf_39._2._1_Flohmarkt {
             return false;
         }
 
-        //O(10^3 + registrations.count*reg.länge+10^3*reg.länge = 10^6+10^3*registrations.Count
+        //O( 10^3*reg.länge*reg.dauer)
         /// <summary>
-        /// findet alle möglichen Positionen für eine gegebene Anmeldung, an denen keine Überschneidung auftritt
-        /// </summary>
-        /// <param name="reg">Anmeldung</param>
-        /// <param name="registrationsLoc">liste mit allen Anmeldungen deren Überschneidung berücksichtigt werden sollen</param>
-        /// <returns>Liste mit allen Positionen in der Straße bei denen für die Anmeldung keine Überschneidung auftritt</returns>
-        private List<int> findFreePositions4(Registration reg, List<Registration> registrationsLoc) {
-            bool[] verticalPositions = new bool[streetLength];
-            for (int e = 0; e < verticalPositions.Length; e++) { verticalPositions[e] = true; }
-            for (int i = 0; i < registrationsLoc.Count; i++) {
-                if (registrationsLoc[i].overlap(new Registration(-1, reg.rentStart, reg.rentEnd, streetLength, 0)) > 0) { //wenn aktuell betrachtete Anmeldung sich mit betrachtetem Querstreifen überschneidet
-                    for (int j = registrationsLoc[i].position; j < registrationsLoc[i].position + registrationsLoc[i].rentLength; j++) { //gehe Bereich ab, in dem sich betrachtete Anmeldung befindet und setze alle spotsvertikal Einträge an dieser Stelle auf false
-                        verticalPositions[j] = false;
-                    }
-                }
-            }
-            List<int> positions = new List<int>();
-            for (int i = 0; i <= streetLength - reg.rentLength; i++) {
-                bool horizontalPosition = true;
-                for (int j = 0; j < reg.rentLength; j++) {
-                    if (verticalPositions[i + j] == false) {
-                        horizontalPosition = false;
-                        i += j; // wenn an Stelle i+j false ist, kann man die Stellen zwischen i und i+j überspringen, da auf jeden Fall keine ganze reg.länge mher reinpasst
-                        break;
-                    }
-                }
-                if (horizontalPosition) {
-                    positions.Add(i);
-                }
-            }
-            return positions;
-        }
-
-        //O( 10^3*reg.länge*reg.dauer
-        /// <summary>
-        /// findet alle möglichen Positionen für eine gegebene Anmeldung, diekeine Grenze überschreitet, an denen keine Überschneidung auftritt auf Basis von occupiedFields[] -> skaliert besser
+        /// findet alle möglichen Positionen für eine gegebene Anmeldung, diekeine Grenze überschreitet, an denen keine Überschneidung auftritt auf Basis von occupiedFields[]
         /// </summary>
         /// <param name="reg">Anmeldung</param>
         /// <param name="unoccupiedFieldsLoc">2D Array das die Ort-Zeit-tafel darstellt. true: frei; false: besetzt</param>
@@ -717,7 +675,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         public void analyseResults() {
             Console.WriteLine("\nANALYSE RESULT:");
             double carThreshold = 5;//ab wievielen Metern Stand braucht man ein zusätzlichen Autostellplatz?
-            int hoursBetweenToiletUse = 2;// alle wieviel Stunden geht man durchschnittlich auf Toilette? (abhängig von Wetter, Essensangebot,...)
+            int hoursBetweenToiletUse = 2;// alle wieviel Stunden geht man durchschnittlich auf Toilette? (abhängig von Wetter, Essensangebot, Geschlechterverteilung,...)
             int[] parkingSpots = new int[duration];
             int[] registrationsNum = new int[duration];
             int[] toiletUsesPerHour = new int[duration];
