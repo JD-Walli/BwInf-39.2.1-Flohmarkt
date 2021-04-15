@@ -1,0 +1,16 @@
+SIMANN META
+Anzahl Durchläufe: 70
+Starttemperatur: 25
+Verkleinerungsrate: 0,99995
+
+BESTE VERTEILUNG
+Anzahl Anmeldungen: 25
+   davon rejected: 21
+Anzahl Überschneidungen: 0
+Energie: -6651
+
+Energieberechnung: energy2
+Moves: move2
+Positioning: setPositions (sorted by compareByRent; optimalPosition)
+
+ Energie, Überschneidungen im Zeitverlauf
