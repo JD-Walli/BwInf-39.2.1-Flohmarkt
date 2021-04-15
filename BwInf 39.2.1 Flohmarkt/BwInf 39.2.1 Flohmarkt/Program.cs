@@ -7,18 +7,20 @@ using System.Threading.Tasks;
 namespace BwInf_39._2._1_Flohmarkt {
     class Program {
         static void Main(string[] args) {
-            int dataSetNumber = 1; int duration = 10; int starttime = 8; int streetLength = 1000; List<Registration> registrations = readData(dataSetNumber);
+            int dataSetNumber = 1; int duration = 10; int starttime = 8; int streetLength = 1000;
+            List<Registration> registrations = readData(dataSetNumber, System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName);
 
             (List<Registration> newRegistrations, bool valid) validated = validateData(registrations, streetLength, starttime, duration);
             if (validated.valid) { registrations = validated.newRegistrations; }
             else { return; }
 
             simulatedAnnealing simAnn = new simulatedAnnealing(dataSetNumber, registrations, streetLength, starttime, duration, 25, 70, 0.99995);
+            //simAnn.fileSavePath = any path were you want to save the results. Default is two folder levels above the .exe in the data folder.
             //simAnn.borderPos = new List<int>() { 440, 402 }; //Grenzpositionen festlegen
             simAnn.energyType = (simAnn.energy2, "energy2");
             simAnn.moveType = (simAnn.move4, "move4");
             //simAnn.setRandomPositions2(0);
-            simAnn.setPositions5((true, true, true));
+            simAnn.setPositions5((false, false, false));
             //simAnn.simulate();
             simAnn.printSaveResult();
             simAnn.analyseResults();
@@ -27,8 +29,14 @@ namespace BwInf_39._2._1_Flohmarkt {
             Console.ReadLine();
         }
 
-        private static List<Registration> readData(int number) {
-            string[] lines = System.IO.File.ReadAllLines(System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName + "/flohmarkt " + number + ".txt");
+        /// <summary>
+        /// reads data. Flohmarkt files should be named e.g. "flohmarkt 3.txt"
+        /// </summary>
+        /// <param name="dataSetNumber">number of flohmarkt file</param>
+        /// <param name="readFilePath">path to flohmarkt files</param>
+        /// <returns></returns>
+        private static List<Registration> readData(int dataSetNumber, string readFilePath) {
+            string[] lines = System.IO.File.ReadAllLines(readFilePath + "/flohmarkt " + dataSetNumber + ".txt");
             List<Registration> registrations = new List<Registration>();
             for (int i = 1; i < lines.Length; i++) {
                 string[] line = lines[i].Split(' ');
