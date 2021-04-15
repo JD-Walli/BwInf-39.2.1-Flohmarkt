@@ -7,24 +7,24 @@ using System.Threading.Tasks;
 namespace BwInf_39._2._1_Flohmarkt {
     class Program {
         static void Main(string[] args) {
-            int dataSetNumber = 1; int duration = 10; int starttime = 8; int streetLength = 1000;
+            int dataSetNumber = 7; int duration = 10; int starttime = 8; int streetLength = 1000;
             List<Registration> registrations = readData(dataSetNumber, System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName);
 
             (List<Registration> newRegistrations, bool valid) validated = validateData(registrations, streetLength, starttime, duration);
             if (validated.valid) { registrations = validated.newRegistrations; }
             else { return; }
 
-            simulatedAnnealing simAnn = new simulatedAnnealing(dataSetNumber, registrations, streetLength, starttime, duration, 25, 70, 0.99995);
-            //simAnn.fileSavePath = any path were you want to save the results. Default is two folder levels above the .exe in the data folder.
-            //simAnn.borderPos = new List<int>() { 440, 402 }; //Grenzpositionen festlegen
-            simAnn.energyType = (simAnn.energy2, "energy2");
-            simAnn.moveType = (simAnn.move4, "move4");
-            //simAnn.setRandomPositions2(0);
-            simAnn.setPositions5((false, false, false));
-            //simAnn.simulate();
-            simAnn.printSaveResult();
-            simAnn.analyseResults();
-            //simAnn.findFreePositionsInRange(19, 16, 2, 3, 10, 15);
+            solver solverObj = new solver(dataSetNumber, registrations, streetLength, starttime, duration, 25, 70, 0.99995);
+            //solverObj.fileSavePath = any path were you want to save the results. Default is two folder levels above the .exe in the data folder.
+            //solverObj.borderPos = new List<int>() { 440, 402 }; //Grenzpositionen festlegen
+            solverObj.energyType = (solverObj.energy2, "energy2");
+            solverObj.moveType = (solverObj.move2, "move2");
+            //solverObj.setRandomPositions2(0);
+            solverObj.setPositions(2, true);
+            //solverObj.simulate();
+            solverObj.printSaveResult();
+            //solverObj.analyseResults();
+            //solverObj.findFreePositionsInRange(19, 16, 2, 3, 10, 15);
 
             Console.ReadLine();
         }
@@ -34,7 +34,6 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// </summary>
         /// <param name="dataSetNumber">number of flohmarkt file</param>
         /// <param name="readFilePath">path to flohmarkt files</param>
-        /// <returns></returns>
         private static List<Registration> readData(int dataSetNumber, string readFilePath) {
             string[] lines = System.IO.File.ReadAllLines(readFilePath + "/flohmarkt " + dataSetNumber + ".txt");
             List<Registration> registrations = new List<Registration>();
@@ -86,6 +85,6 @@ namespace BwInf_39._2._1_Flohmarkt {
             return (registrations, true);
         }
 
-        
+
     }
 }
