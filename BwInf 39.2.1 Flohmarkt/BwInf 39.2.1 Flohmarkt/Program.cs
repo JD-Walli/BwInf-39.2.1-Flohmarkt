@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace BwInf_39._2._1_Flohmarkt {
     class Program {
         static void Main(string[] args) {
-            int dataSetNumber = 7; int duration = 10; int starttime = 8; int streetLength = 1000;
+            int dataSetNumber = 1; int duration = 10; int starttime = 8; int streetLength = 1000;
             List<Registration> registrations = readData(dataSetNumber, System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName);
 
             (List<Registration> newRegistrations, bool valid) validated = validateData(registrations, streetLength, starttime, duration);
@@ -20,10 +20,10 @@ namespace BwInf_39._2._1_Flohmarkt {
             solverObj.energyType = (solverObj.energy2, "energy2");
             solverObj.moveType = (solverObj.move2, "move2");
             //solverObj.setRandomPositions2(0);
-            solverObj.setPositions(2, true);
+            solverObj.setPositions(1, true);
             //solverObj.simulate();
             solverObj.printSaveResult();
-            //solverObj.analyseResults();
+            solverObj.analyseResults();
             //solverObj.findFreePositionsInRange(19, 16, 2, 3, 10, 15);
 
             Console.ReadLine();

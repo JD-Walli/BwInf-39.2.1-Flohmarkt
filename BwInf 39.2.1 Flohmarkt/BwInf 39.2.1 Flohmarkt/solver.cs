@@ -76,9 +76,9 @@ namespace BwInf_39._2._1_Flohmarkt {
             metaToSave.Add("Positioning: setRandomPositions2(" + percentageRejected + ")");
         }
 
-        //sorted&&optimalpos O(cloneList + streetLength*gesamtdauer + registrations.Count*log(registrations.Count) + registrations.Count*(findFreePositions5+findBestPosition5+dauer*länge) = 10^4 + registrations.Count*log(registrations.Count) + registrations.Count*(10^7)
-        //sorted&&optimalpos reg O(cloneList + streetLength*gesamtdauer + registrations.Count*log(registrations.Count) + registrations.Count*(findFreePositions5+findBestPosition5+dauer*länge) = 10^4 + registrations.Count*log(registrations.Count) + registrations.Count*(reg.dauer*10^6+reg.länge*10^4)
-        //sorted O(cloneList + streetLength*gesamtdauer + registrations.Count*log(registrations.Count) + registrations.Count*(findFreePositions5+dauer*länge) =  10^4 + registrations.Count*log(registrations.Count) + registrations.Count*(10^3*reg.länge*reg.dauer)
+        //unsorted random: O(registrations.Count+ registrations.Count* (findFreePositions + reg.duration*reg.length)) = O(registrations.Count* streetLength^2 *reg.duration)
+        //unsorted best: O(registrations.Count+ registrations.Count* (findFreePositions +findBestPos+ reg.duration*reg.length)) = O(registrations.Count* streetLength^2 *duration * )
+        //sorted best: O(registrations.Count+ registrations.Count*log(registrations.Count)+ registrations.Count* (findFreePositions +findBestPos+ reg.duration*reg.length)) = O(registrations.Count*log(registrations.Count)+ registrations.Count*streetLength^2*duration * 3) 
         //O(cloneList + streetLength*gesamtdauer + registrations.Count*(findFreePositions5+dauer*länge) = 10^4 + registrations.Count*(10^3*reg.länge*reg.dauer))
         /// <summary>
         /// setzt Positionen, auch auf rejected Liste; keine Überschneidungen zugelassen; nach Wunsch: - fängt bei sperrigen registrations an (nach Wunsch gilt A oder Dauer als sperrig)  - immer an Position, die am wenigsten freie Positionen einschließt
@@ -89,20 +89,23 @@ namespace BwInf_39._2._1_Flohmarkt {
             (List<Registration> accepted, List<Registration> rejected) registrationsLoc = cloneLists(registrations);
             registrations.accepted.Clear(); registrations.rejected.Clear();
 
+            //sortiere registrations nach Sperrigkeit, wenn gewünscht
             if (sorted!=0) {
                 if (sorted==1) { registrationsLoc.accepted.Sort(compareByRent); }
                 else if(sorted==2){ registrationsLoc.accepted.Sort(compareByDuration); }
                 else if(sorted == 3) { registrationsLoc.accepted.Sort(compareByLength); ; }
             }
+            //setze Positionen der Anmeldungen
             foreach (Registration reg in registrationsLoc.accepted) {
-                List<int> freePositions = findFreePositions(unoccupiedFields, reg);
+                List<int> freePositions = findFreePositions(unoccupiedFields, reg); //alle Positionen auf denen keine Überschneidungen auftreten
                 if (freePositions.Count > 0) {
+                    //wenn gewünscht optimale Position, sonst zufällige
                     if (optimalPos) {
                         reg.position = findBestPosition(unoccupiedFields, reg, freePositions)[0];
                     }
                     else { reg.position = freePositions[rnd.Next(freePositions.Count)]; }
                     registrations.accepted.Add(reg);
-                    unoccupiedFields = setRegUnoccupiedFields(unoccupiedFields, reg, false);
+                    unoccupiedFields = setRegUnoccupiedFields(unoccupiedFields, reg, false); //unoccupiedFields updaten
                 }
                 else {
                     reg.position = -1;
@@ -115,8 +118,9 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         #endregion
 
-        // move4 O(cloneList+energy+durchläufe*(move+energy+cloneList+energyChart) = (reg:) registrations.Count^2+durchläufe*(10^3*reg.länge+registrations.Count^2) = (nonreg:) registrations.Count^2+durchläufe*(10^6+registrations.Count^2))
-        // move2 O(registrations.Count^2+durchläufe*(registrations.Count+2*registrations.Count^2) = durchläufe*(registrations.Count^2))
+        //O(registrations.Count+energy3+ runs*(move+energy+cloneList+sumOverlap))=runs*(move+ 2*registrations.count^2 + registrations.Count* streetLength)
+        // move2 O(runs*( streetLength^2+ streetLength *reg.length*reg.duration+ 2*registrations.count^2))
+        // move O(runs*(2*registrations.count^2 + registrations.Count* streetLength) = runs*(registrations.count^2 + registrations.Count*10^3))
         public void simulate() {
             double temp = startTemperature;
             int currentEnergy = energyType.del(registrations.accepted, startTemperature);//variabel
@@ -193,7 +197,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             return (registrations.accepted, registrations.rejected);
         }
 
-        //O(findFreePositions4+registrations.count= 10^6+10^3*registrations.Count) = O(registrations.count*reg.länge+10^3*reg.länge)
+        //O(findFreePositions+reg.length*reg.duration+ log(freePositions.count)+registrations.Count)
         /// <summary>
         ///verschieben und swappen ohne Überschneidungen (nur an Position wo sicher keine Überschneidungen auftreten)
         /// </summary>
@@ -208,7 +212,8 @@ namespace BwInf_39._2._1_Flohmarkt {
                 List<int> freePositions = findFreePositions(unoccupiedFields, registrations.accepted[index]);
                 if (freePositions.Count > 0) {
                     unoccupiedFields = setRegUnoccupiedFields(unoccupiedFields, registrations.accepted[index], true);
-                    registrations.accepted[index].position = freePositions[findClosestValue(registrations.accepted[index].position + move, freePositions)]; //kleinere Sprünge bei niedrigerer temperature
+                    //zufälliger Wert möglicherweise nicht
+                    registrations.accepted[index].position = freePositions[findClosestValue(registrations.accepted[index].position + move, freePositions)];
                     unoccupiedFields = setRegUnoccupiedFields(unoccupiedFields, registrations.accepted[index], false);
                 }
                 logToSave.Add("verschiebe");
@@ -284,7 +289,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             return (number, sum);
         }
 
-        //O(sumOverlap+sumRent=registrations.Count^2)
+        //O(registrations.Count + sumOverlap + registrations.Count*borders)=O(registrations.Count + registrations.count^2 + registrations.Count*borders)
         /// <summary>
         /// calculates energy:
         /// -rent + n*overlap
@@ -304,7 +309,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             return energy;
         }
 
-        //O(registrations.Count*checkifOverlap = registrations.Count^2)
+        //O(registrations.Count*checkIfOverlap) = O(registrations.Count^2)
         /// <summary>
         ///  calculates energy:
         ///  - (rent aller Anmeldungen die sich nicht überschneiden)
@@ -324,7 +329,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             return energy;
         }
 
-        //O(registrations.Count+sumOverlap = registrations.Count^2+registrations.Count)
+        //O(registrations.Count+sumOverlap) = O(registrations.Count^2+registrations.Count)
         /// <summary>
         ///  calculates energy:
         ///  -rent+overlap; berechnet Kosten, die für das Diagramm accepted werden
@@ -478,7 +483,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         }
 
 
-        //O( 10^3*reg.länge*reg.dauer)
+        //O(streetLength*(borders.Count+reg.length*reg.duration))
         /// <summary>
         /// findet alle möglichen Positionen für eine gegebene Anmeldung, die keine Grenze überschreitet und an denen keine Überschneidung auftritt auf Basis von occupiedFields[]
         /// </summary>
@@ -509,7 +514,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             return positions;
         }
 
-        //O(log(list.count)
+        //O(log(list.count))
         /// <summary>
         /// finds closest value to targetvalue in int list
         /// </summary>
@@ -529,8 +534,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             return index;
         }
 
-        //ist uU nicht der optimale Algo dafür
-        //O(freePositions.Count*getSpaceAround5 = 10^7 = 10^3*(dauer*10^3+länge*10)
+        //O(freePositions.Count*getSpaceAround) = 10^7 = 10^3*(dauer*10^3+länge*10)
         /// <summary>
         /// findet beste Position für gegebene Anmeldung in einer Liste von freien Positionen
         /// </summary>
@@ -549,7 +553,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             return best.positions;
         }
 
-        //O( dauer*(streetlength-länge)+länge*(gesamtdauer-dauer); worst: dauer=10, länge=1 -> ca 10000 bzw 10^4 = dauer*10^3+länge*10
+        //O(reg.duration*streetLength + reg.length*duration); worst: dauer=10, länge=1 -> ca 10000 bzw 10^4 = dauer*10^3+länge*10
         /// <summary>
         /// berechnet an eine Anmeldung grenzende Fläche auf der Zeit-Ort-Tafel bis zur nächsten Anmeldung; 
         /// </summary>
