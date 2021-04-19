@@ -13,7 +13,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         public chart(float[] xValues, float[] yValues) {
             InitializeComponent();
             for (int i = 0; i < xValues.Length; i++) {
-                chart1.Series["Series1"].Points.AddXY(xValues[i], yValues[i]);
+                chart1.Series["Energien"].Points.AddXY(xValues[i], yValues[i]);
             }
         }
 

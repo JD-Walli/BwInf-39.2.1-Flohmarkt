@@ -22,6 +22,11 @@ namespace BwInf_39._2._1_Flohmarkt {
             this.position = position;
         }
 
+        /// <summary>
+        /// prüft Überschneidung zweier Anmeldungen
+        /// </summary>
+        /// <param name="reg2"></param>
+        /// <returns></returns>
         public int overlap(Registration reg2) {
             int xOverlap = Math.Min(position + rentLength, reg2.position + reg2.rentLength) - Math.Max(position, reg2.position);
             int yOverlap = Math.Min(rentEnd, reg2.rentEnd) - Math.Max(rentStart, reg2.rentStart);
