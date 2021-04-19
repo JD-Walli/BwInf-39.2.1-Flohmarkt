@@ -7,26 +7,148 @@ using System.Threading.Tasks;
 namespace BwInf_39._2._1_Flohmarkt {
     class Program {
         static void Main(string[] args) {
-            int dataSetNumber = 5; int duration = 10; int starttime = 8; int streetLength = 1000;
+            //Parameter aus Konsole abfragen
+            (int dataSetNumber, int duration, int starttime, int streetLength, List<int> borders,
+            int positioning, bool optimalPos, int positioningArgs,
+            bool simulate, int runs, int startTemperature, double tempDecreaseRate, int move, int energy) = getUserInput();
+      
+            //lese und validiere Daten
             List<Registration> registrations = readData(dataSetNumber, System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName);
-
             (List<Registration> newRegistrations, bool valid) validated = validateData(registrations, streetLength, starttime, duration);
             if (validated.valid) { registrations = validated.newRegistrations; }
             else { return; }
 
-            solver solverObj = new solver(dataSetNumber, registrations, streetLength, starttime, duration, 25, 70000, 0.99995);
+            //run program
+            solver solverObj = new solver(dataSetNumber, registrations, streetLength, starttime, duration, startTemperature, runs, tempDecreaseRate);
             //solverObj.fileSavePath = any path were you want to save the results. Default is two folder levels above the .exe in the data folder.
-            //solverObj.borderPos = new List<int>() { 440, 402 }; //Grenzpositionen festlegen
-            solverObj.energyType = (solverObj.energy2, "energy2");
-            solverObj.moveType = (solverObj.move, "move");
-            solverObj.setRandomPositions(20);
-            //solverObj.setPositions(0, false);
-            solverObj.simulate();
+            solverObj.borderPos = borders; //Grenzpositionen festlegen
+            //set energy
+            if(energy == 0) {   solverObj.energyType = (solverObj.energy, "energy"); }
+            else {              solverObj.energyType =(solverObj.energy2, "energy2"); }
+            //set move
+            if (move == 0) {    solverObj.moveType = (solverObj.move, "move"); }
+            else {              solverObj.moveType = (solverObj.move2, "move2"); }
+            //set Positions
+            if (positioning == 0) { solverObj.setRandomPositions(positioningArgs); }
+            else {                  solverObj.setPositions(positioningArgs, optimalPos); }
+
+            if (simulate) {      solverObj.simulate(); }
+
             solverObj.printSaveResult();
             solverObj.analyseResults();
-            //solverObj.findFreePositionsInRange(19, 16, 2, 3, 10, 15);
+
+            solverObj.findFreePositionsInRange(19, 16, 2, 3, 10, 15);
 
             Console.ReadLine();
+        }
+
+
+        /// <summary> fragt in der Konsole Paramter ab </summary>
+        private static (int dataSetNumber, int duration, int starttime, int streetLength , List<int> borders, 
+            int positioning, bool optimalPos,int positioningArgs, 
+            bool simulate, int runs, int startTemperature, double tempDecreaseRate, int move, int energy) getUserInput() {
+
+            Console.WriteLine("bitte werte festlegen:");
+
+            Console.Write("dataSetNumber (int): ");
+            int dataSetNumber = int.Parse(Console.ReadLine());
+
+            Console.Write("Flohmarktdauer [10]: ");
+            string input = Console.ReadLine();
+            int duration;
+            if (input == "") { duration = 10; }
+            else { duration = int.Parse(input); }
+
+            Console.Write("Startzeit [8]: ");
+            input = Console.ReadLine();
+            int starttime;
+            if (input == "") { starttime = 8; }
+            else { starttime = int.Parse(input); }
+
+            Console.Write("Flohmarktlänge [1000]: ");
+            input = Console.ReadLine();
+            int streetLength;
+            if (input == "") { streetLength = 1000; }
+            else { streetLength = int.Parse(input); }
+            
+            Console.Write("simulated Annealing? [y/n]: ");
+            input = Console.ReadLine();
+            bool simulate = false;
+            double tempDecreaseRate=0;
+            int runs=0;
+            int startTemperature=0;
+            int move = 0;
+            int energy = 0;
+
+            if (input == "" || input == "y") {
+                simulate = true;
+
+                Console.Write("simulated Annealing durchläufe [70000]: ");
+                input = Console.ReadLine();
+                if (input == "") { runs = 70000; }
+                else { runs = int.Parse(input); }
+
+                Console.Write("simulated Annealing start Temperatur [25]: ");
+                input = Console.ReadLine();
+                if (input == "") { startTemperature = 25; }
+                else { startTemperature = int.Parse(input); }
+
+                Console.Write("simulated Annealing tempDecreaseRate [0.99995]: ");
+                input = Console.ReadLine();
+                if (input == "") { tempDecreaseRate = 0.99995; }
+                else { tempDecreaseRate = double.Parse(input); }
+
+                Console.Write("Veränderung bei simAnn (move (a) / move2 (b) ) [a]: ");
+                input = Console.ReadLine();
+                if (input == "" || input == "a") { move = 0; }
+                else { move = 1; }
+
+                Console.Write("Energieberechnung bei simAnn (energy (a) / energy2 (b) ) [a]: ");
+                input = Console.ReadLine();
+                if (input == "" || input == "a") { move = 0; }
+                else { energy = 1; }
+            }
+
+            Console.Write("borders []: ");
+            input = Console.ReadLine();
+            List<int> borders=new List<int>();
+            if (input == "") { }
+            else {
+                List<string> bordersString =input.Split(' ').ToList();
+                foreach (string b in bordersString) {
+                    borders.Add(int.Parse(b));
+                }
+            }
+
+            Console.Write("setRandomPositions (a) oder setPositions (b) [a]: ");
+            input = Console.ReadLine();
+            int positioning;
+            int positioningArgs = 0;
+            bool optimalPos = false;
+            if (input == "b") {
+                positioning = 1;
+                Console.Write("optimal positions? (y/n): ");
+                input = Console.ReadLine();
+                if (input == "y") {
+                    optimalPos = true;
+                    Console.Write("nicht sortiert (0); sorted nach Miete (1); sortiert nach Dauer (2), sortiert nach Länge (3) [0]: ");
+                    input = Console.ReadLine();
+                    if (input == "") { positioningArgs = 0; }
+                    else { positioningArgs = int.Parse(input); }
+                }
+                else { }
+            }
+            else {
+                positioning = 0;
+                Console.Write("percentage of rejected registrations [20]: ");
+                input = Console.ReadLine();
+                if (input == "") { positioningArgs = 20; }
+                else { tempDecreaseRate = double.Parse(input); }
+            }
+
+            
+
+            return (dataSetNumber, duration, starttime, streetLength, borders, positioning, optimalPos, positioningArgs, simulate, runs, startTemperature, tempDecreaseRate, move, energy);
         }
 
         /// <summary>
