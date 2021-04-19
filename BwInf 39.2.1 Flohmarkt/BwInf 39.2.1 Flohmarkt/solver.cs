@@ -21,7 +21,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         readonly string programStartTime;
         public List<string> metaToSave = new List<string>();
         public List<string> logToSave = new List<string>() {"" };
-        public string fileSavePath = System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName + "/dataSimann/";
+        public string fileSavePath = System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName + "/data/";
 
         readonly int runs;//anzahl der Durchläufe bei simulated Annealing
         readonly int startTemperature;
@@ -705,6 +705,9 @@ namespace BwInf_39._2._1_Flohmarkt {
                     Console.Write("  " + pos2);
                 }
                 Console.WriteLine();
+            }
+            if (positions.Count() == 0) {
+                Console.WriteLine("\nkeine freien Positionen für eingegebene Eckdaten gefunden");
             }
         }
 

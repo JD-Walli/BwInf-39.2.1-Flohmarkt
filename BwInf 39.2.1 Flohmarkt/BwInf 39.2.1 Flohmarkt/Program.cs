@@ -13,14 +13,14 @@ namespace BwInf_39._2._1_Flohmarkt {
             bool simulate, int runs, int startTemperature, double tempDecreaseRate, int move, int energy) = getUserInput();
       
             //lese und validiere Daten
-            List<Registration> registrations = readData(dataSetNumber, System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName);
+            List<Registration> registrations = readData(dataSetNumber, Environment.CurrentDirectory);//System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName
             (List<Registration> newRegistrations, bool valid) validated = validateData(registrations, streetLength, starttime, duration);
             if (validated.valid) { registrations = validated.newRegistrations; }
             else { return; }
 
             //run program
             solver solverObj = new solver(dataSetNumber, registrations, streetLength, starttime, duration, startTemperature, runs, tempDecreaseRate);
-            //solverObj.fileSavePath = any path were you want to save the results. Default is two folder levels above the .exe in the data folder.
+            solverObj.fileSavePath = Environment.CurrentDirectory + "/data/";
             solverObj.borderPos = borders; //Grenzpositionen festlegen
             //set energy
             if(energy == 0) {   solverObj.energyType = (solverObj.energy, "energy"); }
@@ -37,7 +37,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             solverObj.printSaveResult();
             solverObj.analyseResults();
 
-            solverObj.findFreePositionsInRange(19, 16, 2, 3, 10, 15);
+            solverObj.findFreePositionsInRange(12, 16, 2, 3, 10, 15);
 
             Console.ReadLine();
         }
@@ -48,7 +48,7 @@ namespace BwInf_39._2._1_Flohmarkt {
             int positioning, bool optimalPos,int positioningArgs, 
             bool simulate, int runs, int startTemperature, double tempDecreaseRate, int move, int energy) getUserInput() {
 
-            Console.WriteLine("bitte werte festlegen:");
+            Console.WriteLine();
 
             Console.Write("dataSetNumber (int): ");
             int dataSetNumber = int.Parse(Console.ReadLine());
@@ -146,7 +146,7 @@ namespace BwInf_39._2._1_Flohmarkt {
                 else { tempDecreaseRate = double.Parse(input); }
             }
 
-            
+            Console.WriteLine();
 
             return (dataSetNumber, duration, starttime, streetLength, borders, positioning, optimalPos, positioningArgs, simulate, runs, startTemperature, tempDecreaseRate, move, energy);
         }
