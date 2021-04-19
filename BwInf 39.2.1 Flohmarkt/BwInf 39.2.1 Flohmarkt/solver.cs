@@ -20,8 +20,8 @@ namespace BwInf_39._2._1_Flohmarkt {
         readonly int dataSetNumber;
         readonly string programStartTime;
         public List<string> metaToSave = new List<string>();
-        public List<string> logToSave = new List<string>();
-        public string fileSavePath = System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName + "/data2/";
+        public List<string> logToSave = new List<string>() {"" };
+        public string fileSavePath = System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName + "/dataSimann/";
 
         readonly int runs;
         readonly int startTemperature;
@@ -113,7 +113,7 @@ namespace BwInf_39._2._1_Flohmarkt {
                 }
             }
             output = (energy3(registrations.accepted), new List<int>(), new List<int>(), registrations, registrations);
-            metaToSave.Add("Positioning: setPositions (" + (sorted!=0 ? "sorted " + (sorted==1 ? " by compareByRent; " : (sorted == 2 ? "by compareByDuration; " : "by combareByLength; ")) : "not Sorted; ") + (optimalPos ? "optimalPosition)" : "randomPosition)"));
+            metaToSave.Add("Positioning: setPositions (" + (sorted!=0 ? "sorted " + (sorted==1 ? "by compareByRent; " : (sorted == 2 ? "by compareByDuration; " : "by compareByLength; ")) : "not Sorted; ") + (optimalPos ? "optimalPosition)" : "randomPosition)"));
         }
 
         #endregion
@@ -212,7 +212,7 @@ namespace BwInf_39._2._1_Flohmarkt {
                 List<int> freePositions = findFreePositions(unoccupiedFields, registrations.accepted[index]);
                 if (freePositions.Count > 0) {
                     unoccupiedFields = setRegUnoccupiedFields(unoccupiedFields, registrations.accepted[index], true);
-                    //zufälliger Wert möglicherweise nicht
+                    //zufälliger Wert möglicherweise nicht in freePositions; daher wird nächster Wert von findclosestVal gesucht
                     registrations.accepted[index].position = freePositions[findClosestValue(registrations.accepted[index].position + move, freePositions)];
                     unoccupiedFields = setRegUnoccupiedFields(unoccupiedFields, registrations.accepted[index], false);
                 }
@@ -223,18 +223,18 @@ namespace BwInf_39._2._1_Flohmarkt {
                 if ((rnd2 < 50 || registrations.rejected.Count == 0) && registrations.accepted.Count > 0) {//reinswap
                     int index = rnd.Next(registrations.accepted.Count);
                     registrations.rejected.Add(registrations.accepted[index]);
-                    registrations.accepted.RemoveAt(index);
                     unoccupiedFields = setRegUnoccupiedFields(unoccupiedFields, registrations.accepted[index], true);
+                    registrations.accepted.RemoveAt(index);
                     logToSave.Add("swap->rejected");
                 }
                 else {//rausswap
                     int index = rnd.Next(registrations.rejected.Count);
-                    List<int> freePositions = findFreePositions(unoccupiedFields, registrations.accepted[index]);
+                    List<int> freePositions = findFreePositions(unoccupiedFields, registrations.rejected[index]);
                     if (freePositions.Count > 0) {
                         registrations.rejected[index].position = freePositions[rnd.Next(freePositions.Count)];
                         registrations.accepted.Add(registrations.rejected[index]);
+                        unoccupiedFields = setRegUnoccupiedFields(unoccupiedFields, registrations.rejected[index], false);
                         registrations.rejected.RemoveAt(index);
-                        unoccupiedFields = setRegUnoccupiedFields(unoccupiedFields, registrations.accepted[index], false);
                         logToSave.Add("swap->accepted");
                     }
                 }
@@ -434,9 +434,9 @@ namespace BwInf_39._2._1_Flohmarkt {
             txt.WriteLine();
             txt.WriteLine("BESTE VERTEILUNG");
             txt.WriteLine("Anzahl Anmeldungen: " + (bestDistribution.accepted.Count + bestDistribution.rejected.Count));
-            txt.WriteLine("   davon rejected: " + bestDistribution.rejected.Count);
+            txt.WriteLine("   davon abgelehnt: " + bestDistribution.rejected.Count);
             txt.WriteLine("Anzahl Überschneidungen: " + sumOverlap(bestDistribution.accepted).number);
-            txt.WriteLine("Energie: " + bestEnergy);
+            txt.WriteLine("Energie/-Mieteinnahmen: " + bestEnergy);
             txt.WriteLine();
             txt.WriteLine("Energieberechnung: " + energyType.name);
             txt.WriteLine("Moves: " + moveType.name);
@@ -492,7 +492,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         /// <returns>Liste mit allen Positionen im Flohmarkt bei denen für die Anmeldung keine Überschneidung auftritt</returns>
         private List<int> findFreePositions(bool[,] unoccupiedFieldsLoc, Registration reg) {
             List<int> positions = new List<int>();
-            for (int x = 0; x <= unoccupiedFieldsLoc.GetLength(0) - reg.rentLength; x++) {
+            for (int x = 0; x < streetLength - reg.rentLength; x++) {
                 bool crossBorder = false;
                 foreach (int border in borderPos) { //check if current position would cross any border (Erweiterung)
                     if (x < border && x + reg.rentLength > border) { crossBorder = true; break; }

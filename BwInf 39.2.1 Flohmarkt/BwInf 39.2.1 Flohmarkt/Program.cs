@@ -7,21 +7,21 @@ using System.Threading.Tasks;
 namespace BwInf_39._2._1_Flohmarkt {
     class Program {
         static void Main(string[] args) {
-            int dataSetNumber = 1; int duration = 10; int starttime = 8; int streetLength = 1000;
+            int dataSetNumber = 5; int duration = 10; int starttime = 8; int streetLength = 1000;
             List<Registration> registrations = readData(dataSetNumber, System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName);
 
             (List<Registration> newRegistrations, bool valid) validated = validateData(registrations, streetLength, starttime, duration);
             if (validated.valid) { registrations = validated.newRegistrations; }
             else { return; }
 
-            solver solverObj = new solver(dataSetNumber, registrations, streetLength, starttime, duration, 25, 70, 0.99995);
+            solver solverObj = new solver(dataSetNumber, registrations, streetLength, starttime, duration, 25, 70000, 0.99995);
             //solverObj.fileSavePath = any path were you want to save the results. Default is two folder levels above the .exe in the data folder.
             //solverObj.borderPos = new List<int>() { 440, 402 }; //Grenzpositionen festlegen
             solverObj.energyType = (solverObj.energy2, "energy2");
-            solverObj.moveType = (solverObj.move2, "move2");
-            //solverObj.setRandomPositions2(0);
-            solverObj.setPositions(1, true);
-            //solverObj.simulate();
+            solverObj.moveType = (solverObj.move, "move");
+            solverObj.setRandomPositions(20);
+            //solverObj.setPositions(0, false);
+            solverObj.simulate();
             solverObj.printSaveResult();
             solverObj.analyseResults();
             //solverObj.findFreePositionsInRange(19, 16, 2, 3, 10, 15);
