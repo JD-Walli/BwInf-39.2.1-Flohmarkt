@@ -1,5 +1,0 @@
-<Project>
-<ItemGroup>
-<SharpGenConsumerMapping Include="$(MSBuildThisFileDirectory)/SharpGen.Runtime.COM.BindMapping.xml"/>
-</ItemGroup>
-</Project>
