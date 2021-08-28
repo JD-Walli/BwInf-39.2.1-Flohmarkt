@@ -15,7 +15,7 @@ namespace BwInf_39._2._1_Flohmarkt {
         readonly int starttime;
         public List<int> borderPos; //Stellen, die nicht von einer Anmeldung überschritten werden darf
 
-        private bool[,] unoccupiedFields; //Array mit allen Tisch|Zeit Felder: true->nicht belegt; false-> mit anmeldung belegt //nur für Varianten ohne Überschneidungen erlaubt/brauchbar
+        private bool[,] unoccupiedFields; //Array mit allen Tisch|Zeit Feldern: true->nicht belegt; false-> mit anmeldung belegt //nur bei Varianten ohne Überschneidungen gebraucht
 
         readonly int dataSetNumber;
         readonly string programStartTime;
@@ -349,7 +349,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 
         #endregion
 
-        #region ending
+        #region printSavePlot
 
         /// <summary>
         /// prints result und speicher-dialog in Konsole

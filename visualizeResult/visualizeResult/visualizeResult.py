@@ -5,9 +5,9 @@ import csv
 fig, ax = plt.subplots()
 plot_abgelehnt = True
 pos_abgelehnt = 0
-data_name = "3 savedResult 210418 232827"
+data_name = "2 savedResult 210415 163518"
 
-with open("C://Users//Jakov//Desktop//git//BWInf 20//BwInf 39.2.1 Flohmarkt//BwInf 39.2.1 Flohmarkt//dataSimann//" + data_name + ".csv") as csvfile:
+with open("C://Users//Jakov//Desktop//git//BWInf 20//BwInf 39.2.1 Flohmarkt//BwInf 39.2.1 Flohmarkt//ergebnisse//" + data_name + ".csv") as csvfile:
   csvReader = csv.reader(csvfile, delimiter=' ')
   print(type(csvReader))
   for row in csvReader:
