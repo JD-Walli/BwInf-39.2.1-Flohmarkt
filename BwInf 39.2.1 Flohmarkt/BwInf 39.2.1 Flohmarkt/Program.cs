@@ -20,7 +20,7 @@ namespace BwInf_39._2._1_Flohmarkt {
 
             //run program
             solver solverObj = new solver(dataSetNumber, registrations, streetLength, starttime, duration, startTemperature, runs, tempDecreaseRate);
-            solverObj.fileSavePath = Environment.CurrentDirectory + "/data/";
+            //solverObj.fileSavePath = Environment.CurrentDirectory + "/data/"; //only when program runs "standalone" as exe
             solverObj.borderPos = borders; //Grenzpositionen festlegen
             //set energy
             if(energy == 0) {   solverObj.energyType = (solverObj.energy, "energy"); }

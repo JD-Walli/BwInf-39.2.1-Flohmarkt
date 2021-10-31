@@ -136,7 +136,7 @@ namespace BwInf_39._2._1_Flohmarkt {
                 changedRegistrations = moveType.del(changedRegistrations, temp); //variabel
                 int newEnergy = energyType.del(changedRegistrations.accepted, temp);//variabel
                 logToSave[logToSave.Count - 1] += " " + newEnergy;
-                if (i % 100 == 0) Console.WriteLine(i + "  " + currentEnergy);
+                if (i % 100 == 0) { Console.WriteLine(i + "  " + currentEnergy); Console.WriteLine(sumOverlap(changedRegistrations.accepted)); }
                 //überprüfen ob Änderung angenommen wird
                 if (newEnergy <= currentEnergy || rnd.NextDouble() < Math.Exp(-(newEnergy - currentEnergy) / temp)) {
                     currentEnergy = newEnergy;
